@@ -1,0 +1,279 @@
+<!-- Module 1: 一行代码的魔法 -->
+<section class="module" id="module-1" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+
+    <header class="module-header animate-in" style="text-align:center; padding-top: var(--space-8);">
+      <p style="font-family: var(--font-mono); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.15em; color: var(--color-accent); margin-bottom: var(--space-3);">深入 OCCT 布尔运算 · 交互式教程</p>
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">01</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">一行代码的魔法</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">当你调用 <code>BRepAlgoAPI_Fuse</code> 时，到底发生了什么？</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 课程开场 + hero 图 -->
+      <section class="screen animate-in" style="margin-top: var(--space-12);">
+        <p style="font-size: var(--text-lg); line-height: var(--leading-loose);">你在 <span class="term" data-definition="Computer-Aided Design，计算机辅助设计——用软件画出零件、建筑、产品的三维模型，再拿去制造。SolidWorks、FreeCAD 都是 CAD 软件。">CAD</span> 软件里点过「合并」「开孔」「切除」按钮吗？比如给零件打一个螺丝孔。点下去的那一瞬间，底层的<span class="term" data-definition="几何内核是 CAD 软件的发动机：负责所有真正的数学计算——求交、切割、圆角。界面只是方向盘，内核才是干活的。">几何内核</span>就在执行<span class="term" data-definition="布尔运算：像数学集合的并集/交集/差集一样，对两组三维形状做合并、求公共部分、切除。名字来自数学家 George Boole。">布尔运算</span>。</p>
+        <p>很多 CAD 软件的内核正是 <span class="term" data-definition="Open CASCADE Technology——一个开源的三维几何建模内核库，用 C++ 写成，30 多年历史。FreeCAD、KiCad 等软件都构建在它之上。">OCCT</span>。这门课带你钻进它的源码，看清那「一瞬间」内部发生的一切。</p>
+        <figure style="margin: var(--space-8) 0;">
+          <img src="images/hero-boolean.png" alt="立方体与球的四种布尔运算结果：Fuse、Common、Cut、Section" style="width:100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); display:block;">
+          <figcaption style="text-align:center; font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-3);">同一对形状（立方体 + 球），四种不同的布尔结果 —— 这正是本模块要拆解的魔法</figcaption>
+        </figure>
+      </section>
+
+      <!-- Screen 2: 橡皮泥隐喻 + 四操作卡片 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">四种玩法，同一对橡皮泥</h2>
+        <p>想象两团橡皮泥：蓝灰色的立方体和珊瑚色的球，部分叠在一起。布尔运算就是四种不同的「玩法」：</p>
+        <div class="pattern-cards" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); margin-top: var(--space-6);">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-2); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🤝</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">FUSE · 并</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">把两团橡皮泥捏成一团。结果是一个无缝的整体。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-5); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🫱🫲</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">COMMON · 交</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">只留下两团重叠的部分——那个凸透镜形状的小块。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-1); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🔪</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">CUT · 差</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">用球当模具，从立方体上挖走一块。打孔、开槽全靠它。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-4); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">✏️</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">SECTION · 截面</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">只描出两团相碰处的轮廓线。不要体，只要交线。</p>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6);">在代码里，每个参与者都是一个 <span class="term" data-definition="TopoDS_Shape 是 OCCT 中所有形状的通用包装盒：顶点、边、面、实体……全都装在这一种类型里传递，就像快递统一用纸箱。">TopoDS_Shape</span>，分成两组：<span class="term" data-definition="Objects（对象组）：被加工的主角形状。可以同时放多个。">Objects</span>（被加工的）和 <span class="term" data-definition="Tools（工具组）：当作刀具/模具的形状。Cut 时它就是那把刀。也可以同时放多个。">Tools</span>（当工具的）。</p>
+      </section>
+
+      <!-- Screen 3: 操作枚举 code↔English -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">源码里的「菜单」</h2>
+        <p>OCCT 用一个<span class="term" data-definition="枚举（enum）：给一组固定选项起名字的清单，像奶茶店的菜单——只能从列出的几种里选。">枚举</span>列出全部操作。这是真实源码，来自 <code style="font-size: var(--text-xs);">BOPAlgo_Operation.hxx</code>：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">enum</span> <span class="code-function">BOPAlgo_Operation</span></span>
+<span class="code-line">{</span>
+<span class="code-line">  BOPAlgo_COMMON,</span>
+<span class="code-line">  BOPAlgo_FUSE,</span>
+<span class="code-line">  BOPAlgo_CUT,</span>
+<span class="code-line">  BOPAlgo_CUT21,</span>
+<span class="code-line">  BOPAlgo_SECTION,</span>
+<span class="code-line">  BOPAlgo_UNKNOWN</span>
+<span class="code-line">};</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">定义一份名叫「布尔操作」的菜单。</p>
+              <p class="tl">菜单开始。</p>
+              <p class="tl">COMMON：交集——只要重叠部分。</p>
+              <p class="tl">FUSE：并集——全都要。</p>
+              <p class="tl">CUT：用 Tools 切 Objects。</p>
+              <p class="tl">CUT21：反着来，用 Objects 切 Tools。</p>
+              <p class="tl">SECTION：只要相交处的线。</p>
+              <p class="tl">UNKNOWN：还没点单（默认值）。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！CUT 为什么有两个方向？</strong>
+            <p>「A 切 B」和「B 切 A」结果完全不同——就像用饼干模具压面团 vs 用面团包住模具。CUT21 就是方向反过来的 CUT。很多布尔 bug 其实只是方向传反了。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: 追踪一次调用 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">追踪一次真实调用</h2>
+        <p>用户代码只需一行：<code>BRepAlgoAPI_Fuse aFuse(box, sphere);</code>。这行代码触发的是下面这个<span class="term" data-definition="构造函数（constructor）：对象「出生」时自动执行的函数，负责初始化。名字和类名相同。">构造函数</span>——来自 <code style="font-size: var(--text-xs);">BRepAlgoAPI_Fuse.cxx</code>：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-function">BRepAlgoAPI_Fuse</span>::<span class="code-function">BRepAlgoAPI_Fuse</span>(<span class="code-keyword">const</span> TopoDS_Shape&amp;          S1,</span>
+<span class="code-line">                                   <span class="code-keyword">const</span> TopoDS_Shape&amp;          S2,</span>
+<span class="code-line">                                   <span class="code-keyword">const</span> Message_ProgressRange&amp; theRange)</span>
+<span class="code-line">    : <span class="code-function">BRepAlgoAPI_BooleanOperation</span>(S1, S2, BOPAlgo_FUSE)</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-function">Build</span>(theRange);</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">接收两个形状：S1 是 Object，S2 是 Tool。</p>
+              <p class="tl">还有一个进度条参数（可选，给 UI 显示进度用）。</p>
+              <p class="tl">出生时就向父类登记：「我的订单是 FUSE」。</p>
+              <p class="tl">然后立刻开工——调用 Build()。</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-8);">Build() 一上来先做「体检」，确认材料齐全才开工——来自 <code style="font-size: var(--text-xs);">BRepAlgoAPI_BooleanOperation.cxx</code>：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// Check for availability of arguments and tools</span></span>
+<span class="code-line"><span class="code-comment">// Both should be present</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myArguments.<span class="code-function">IsEmpty</span>() || myTools.<span class="code-function">IsEmpty</span>())</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-function">AddError</span>(<span class="code-keyword">new</span> BOPAlgo_AlertTooFewArguments);</span>
+<span class="code-line">  <span class="code-keyword">return</span>;</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-comment">// Check if the operation is set</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myOperation == BOPAlgo_UNKNOWN)</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-function">AddError</span>(<span class="code-keyword">new</span> BOPAlgo_AlertBOPNotSet);</span>
+<span class="code-line">  <span class="code-keyword">return</span>;</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">体检第一项：Objects 和 Tools 两组都得有人。</p>
+              <p class="tl">缺一组？记录错误「参数太少」，直接收工。</p>
+              <p class="tl">体检第二项：菜单上点单了吗？</p>
+              <p class="tl">还是 UNKNOWN？记录错误「没选操作」，收工。</p>
+              <p class="tl">这种「先体检再干活」的写法叫防御式编程。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 5: 数据流动画 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">整个旅程，点一遍看看</h2>
+        <p>从你的一行代码到拿回结果，数据是这样流动的：</p>
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"你的代码：BRepAlgoAPI_Fuse aFuse(box, sphere) —— 把两个形状递进去"},
+          {"highlight":"flow-actor-2","label":"构造函数登记订单：myOperation = BOPAlgo_FUSE","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-3","label":"Build() 体检：两组形状都在？操作选好了？通过！","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-3","label":"Build() 指挥求交与建造（下一章的主角们登场）"},
+          {"highlight":"flow-actor-4","label":"融合完成 —— aFuse.Shape() 取走结果","packet":true,"from":"actor-3","to":"actor-4"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1">
+              <div class="flow-actor-icon">👩‍💻</div>
+              <span>你的代码</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-2">
+              <div class="flow-actor-icon">📋</div>
+              <span>构造函数</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-3">
+              <div class="flow-actor-icon">🏗️</div>
+              <span>Build()</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-4">
+              <div class="flow-actor-icon">✨</div>
+              <span>结果 Shape</span>
+            </div>
+          </div>
+          <div class="flow-packet" id="flow-packet"></div>
+          <div class="flow-step-label" id="flow-label">点「下一步」开始追踪</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">下一步</button>
+            <button class="btn flow-reset-btn">重来</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 6: Quiz -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">动手想一想</h2>
+        <div class="quiz-container" id="quiz-module1">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="完全正确！打孔 = 从零件上挖走材料，所以是 CUT；零件是被加工的 Objects，圆柱是当刀使的 Tools。"
+               data-explanation-wrong="不太对——想想哪个形状是「被加工的」、哪个是「当刀使的」。打孔是把材料挖走，对应哪种玩法？">
+            <h3 class="quiz-question">你想在零件上打一个圆孔。该用哪个操作？两组怎么放？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>FUSE；Objects=零件，Tools=圆柱</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>CUT；Objects=零件，Tools=圆柱</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>CUT；Objects=圆柱，Tools=零件</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="对！CUT 是 Tools 切 Objects，CUT21 是反向：Objects 切 Tools。方向反了结果完全不同。"
+               data-explanation-wrong="再想想——枚举里 CUT 和 CUT21 是两个独立选项，21 这个数字暗示了什么顺序？">
+            <h3 class="quiz-question">CUT 和 CUT21 的区别是什么？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>CUT21 是 21 世纪新版的 CUT，精度更高</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>CUT 只能切一刀，CUT21 可以切 21 刀</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>切的方向相反：CUT 是 Tools 切 Objects，CUT21 反过来</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="正确！SECTION 不产生体，只收集两组形状相交处的边和点——正是「交线」。"
+               data-explanation-wrong="提示：你要的不是任何「体」，而是相交处的那条「线」。菜单上哪一项是专门干这个的？">
+            <h3 class="quiz-question">你只想要两个曲面的交线（不要任何体），该点哪个单？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>SECTION</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>COMMON</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>FUSE 之后再删掉体</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">再试一次</button>
+        </div>
+
+        <div class="callout callout-info" style="margin-top: var(--space-12);">
+          <div class="callout-icon">🎬</div>
+          <div class="callout-content">
+            <strong class="callout-title">下一章预告</strong>
+            <p>Build() 里那句「指挥求交与建造」是谁在真正干活？OCCT 把活儿分包给了四个部门——下一章，认识这个摄制组。</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

@@ -1,0 +1,2488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深入 OCCT 布尔运算 · 交互式教程</title>
+
+  <!-- Google Fonts: Bricolage Grotesque · DM Sans · JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    :root {
+      --color-accent:       #2A7B9B;
+      --color-accent-hover: #1F6280;
+      --color-accent-light: #E4F2F7;
+      --color-accent-muted: #5A9DB8;
+    }
+  </style>
+
+  <script src="main.js" defer></script>
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="nav-inner">
+      <span class="nav-title">OCCT 布尔运算</span>
+      <div class="nav-dots" id="nav-dots" role="tablist">
+        <button class="nav-dot" data-target="module-1" data-tooltip="一行代码的魔法" role="tab" aria-label="Module 1: 一行代码的魔法"></button>
+        <button class="nav-dot" data-target="module-2" data-tooltip="认识演员表" role="tab" aria-label="Module 2: 认识演员表"></button>
+        <button class="nav-dot" data-target="module-3" data-tooltip="交点部分" role="tab" aria-label="Module 3: 交点部分"></button>
+        <button class="nav-dot" data-target="module-4" data-tooltip="建造部分" role="tab" aria-label="Module 4: 建造部分"></button>
+        <button class="nav-dot" data-target="module-5" data-tooltip="调参与排错" role="tab" aria-label="Module 5: 调参与排错"></button>
+        <button class="nav-dot" data-target="module-6" data-tooltip="番外 · 相交引擎" role="tab" aria-label="Module 6: 番外篇 相交计算的几何引擎"></button>
+        <button class="nav-dot" data-target="module-7" data-tooltip="番外II · 实战判例" role="tab" aria-label="Module 7: 番外篇II 实战判例篇"></button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- modules/*.html content is assembled here by build.sh -->
+<!-- Module 1: 一行代码的魔法 -->
+<section class="module" id="module-1" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+
+    <header class="module-header animate-in" style="text-align:center; padding-top: var(--space-8);">
+      <p style="font-family: var(--font-mono); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.15em; color: var(--color-accent); margin-bottom: var(--space-3);">深入 OCCT 布尔运算 · 交互式教程</p>
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">01</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">一行代码的魔法</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">当你调用 <code>BRepAlgoAPI_Fuse</code> 时，到底发生了什么？</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 课程开场 + hero 图 -->
+      <section class="screen animate-in" style="margin-top: var(--space-12);">
+        <p style="font-size: var(--text-lg); line-height: var(--leading-loose);">你在 <span class="term" data-definition="Computer-Aided Design，计算机辅助设计——用软件画出零件、建筑、产品的三维模型，再拿去制造。SolidWorks、FreeCAD 都是 CAD 软件。">CAD</span> 软件里点过「合并」「开孔」「切除」按钮吗？比如给零件打一个螺丝孔。点下去的那一瞬间，底层的<span class="term" data-definition="几何内核是 CAD 软件的发动机：负责所有真正的数学计算——求交、切割、圆角。界面只是方向盘，内核才是干活的。">几何内核</span>就在执行<span class="term" data-definition="布尔运算：像数学集合的并集/交集/差集一样，对两组三维形状做合并、求公共部分、切除。名字来自数学家 George Boole。">布尔运算</span>。</p>
+        <p>很多 CAD 软件的内核正是 <span class="term" data-definition="Open CASCADE Technology——一个开源的三维几何建模内核库，用 C++ 写成，30 多年历史。FreeCAD、KiCad 等软件都构建在它之上。">OCCT</span>。这门课带你钻进它的源码，看清那「一瞬间」内部发生的一切。</p>
+        <figure style="margin: var(--space-8) 0;">
+          <img src="images/hero-boolean.png" alt="立方体与球的四种布尔运算结果：Fuse、Common、Cut、Section" style="width:100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); display:block;">
+          <figcaption style="text-align:center; font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-3);">同一对形状（立方体 + 球），四种不同的布尔结果 —— 这正是本模块要拆解的魔法</figcaption>
+        </figure>
+      </section>
+
+      <!-- Screen 2: 橡皮泥隐喻 + 四操作卡片 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">四种玩法，同一对橡皮泥</h2>
+        <p>想象两团橡皮泥：蓝灰色的立方体和珊瑚色的球，部分叠在一起。布尔运算就是四种不同的「玩法」：</p>
+        <div class="pattern-cards" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); margin-top: var(--space-6);">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-2); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🤝</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">FUSE · 并</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">把两团橡皮泥捏成一团。结果是一个无缝的整体。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-5); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🫱🫲</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">COMMON · 交</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">只留下两团重叠的部分——那个凸透镜形状的小块。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-1); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🔪</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">CUT · 差</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">用球当模具，从立方体上挖走一块。打孔、开槽全靠它。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-4); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">✏️</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">SECTION · 截面</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">只描出两团相碰处的轮廓线。不要体，只要交线。</p>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6);">在代码里，每个参与者都是一个 <span class="term" data-definition="TopoDS_Shape 是 OCCT 中所有形状的通用包装盒：顶点、边、面、实体……全都装在这一种类型里传递，就像快递统一用纸箱。">TopoDS_Shape</span>，分成两组：<span class="term" data-definition="Objects（对象组）：被加工的主角形状。可以同时放多个。">Objects</span>（被加工的）和 <span class="term" data-definition="Tools（工具组）：当作刀具/模具的形状。Cut 时它就是那把刀。也可以同时放多个。">Tools</span>（当工具的）。</p>
+      </section>
+
+      <!-- Screen 3: 操作枚举 code↔English -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">源码里的「菜单」</h2>
+        <p>OCCT 用一个<span class="term" data-definition="枚举（enum）：给一组固定选项起名字的清单，像奶茶店的菜单——只能从列出的几种里选。">枚举</span>列出全部操作。这是真实源码，来自 <code style="font-size: var(--text-xs);">BOPAlgo_Operation.hxx</code>：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">enum</span> <span class="code-function">BOPAlgo_Operation</span></span>
+<span class="code-line">{</span>
+<span class="code-line">  BOPAlgo_COMMON,</span>
+<span class="code-line">  BOPAlgo_FUSE,</span>
+<span class="code-line">  BOPAlgo_CUT,</span>
+<span class="code-line">  BOPAlgo_CUT21,</span>
+<span class="code-line">  BOPAlgo_SECTION,</span>
+<span class="code-line">  BOPAlgo_UNKNOWN</span>
+<span class="code-line">};</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">定义一份名叫「布尔操作」的菜单。</p>
+              <p class="tl">菜单开始。</p>
+              <p class="tl">COMMON：交集——只要重叠部分。</p>
+              <p class="tl">FUSE：并集——全都要。</p>
+              <p class="tl">CUT：用 Tools 切 Objects。</p>
+              <p class="tl">CUT21：反着来，用 Objects 切 Tools。</p>
+              <p class="tl">SECTION：只要相交处的线。</p>
+              <p class="tl">UNKNOWN：还没点单（默认值）。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！CUT 为什么有两个方向？</strong>
+            <p>「A 切 B」和「B 切 A」结果完全不同——就像用饼干模具压面团 vs 用面团包住模具。CUT21 就是方向反过来的 CUT。很多布尔 bug 其实只是方向传反了。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: 追踪一次调用 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">追踪一次真实调用</h2>
+        <p>用户代码只需一行：<code>BRepAlgoAPI_Fuse aFuse(box, sphere);</code>。这行代码触发的是下面这个<span class="term" data-definition="构造函数（constructor）：对象「出生」时自动执行的函数，负责初始化。名字和类名相同。">构造函数</span>——来自 <code style="font-size: var(--text-xs);">BRepAlgoAPI_Fuse.cxx</code>：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-function">BRepAlgoAPI_Fuse</span>::<span class="code-function">BRepAlgoAPI_Fuse</span>(<span class="code-keyword">const</span> TopoDS_Shape&amp;          S1,</span>
+<span class="code-line">                                   <span class="code-keyword">const</span> TopoDS_Shape&amp;          S2,</span>
+<span class="code-line">                                   <span class="code-keyword">const</span> Message_ProgressRange&amp; theRange)</span>
+<span class="code-line">    : <span class="code-function">BRepAlgoAPI_BooleanOperation</span>(S1, S2, BOPAlgo_FUSE)</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-function">Build</span>(theRange);</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">接收两个形状：S1 是 Object，S2 是 Tool。</p>
+              <p class="tl">还有一个进度条参数（可选，给 UI 显示进度用）。</p>
+              <p class="tl">出生时就向父类登记：「我的订单是 FUSE」。</p>
+              <p class="tl">然后立刻开工——调用 Build()。</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-8);">Build() 一上来先做「体检」，确认材料齐全才开工——来自 <code style="font-size: var(--text-xs);">BRepAlgoAPI_BooleanOperation.cxx</code>：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// Check for availability of arguments and tools</span></span>
+<span class="code-line"><span class="code-comment">// Both should be present</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myArguments.<span class="code-function">IsEmpty</span>() || myTools.<span class="code-function">IsEmpty</span>())</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-function">AddError</span>(<span class="code-keyword">new</span> BOPAlgo_AlertTooFewArguments);</span>
+<span class="code-line">  <span class="code-keyword">return</span>;</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-comment">// Check if the operation is set</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myOperation == BOPAlgo_UNKNOWN)</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-function">AddError</span>(<span class="code-keyword">new</span> BOPAlgo_AlertBOPNotSet);</span>
+<span class="code-line">  <span class="code-keyword">return</span>;</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">体检第一项：Objects 和 Tools 两组都得有人。</p>
+              <p class="tl">缺一组？记录错误「参数太少」，直接收工。</p>
+              <p class="tl">体检第二项：菜单上点单了吗？</p>
+              <p class="tl">还是 UNKNOWN？记录错误「没选操作」，收工。</p>
+              <p class="tl">这种「先体检再干活」的写法叫防御式编程。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 5: 数据流动画 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">整个旅程，点一遍看看</h2>
+        <p>从你的一行代码到拿回结果，数据是这样流动的：</p>
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"你的代码：BRepAlgoAPI_Fuse aFuse(box, sphere) —— 把两个形状递进去"},
+          {"highlight":"flow-actor-2","label":"构造函数登记订单：myOperation = BOPAlgo_FUSE","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-3","label":"Build() 体检：两组形状都在？操作选好了？通过！","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-3","label":"Build() 指挥求交与建造（下一章的主角们登场）"},
+          {"highlight":"flow-actor-4","label":"融合完成 —— aFuse.Shape() 取走结果","packet":true,"from":"actor-3","to":"actor-4"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1">
+              <div class="flow-actor-icon">👩‍💻</div>
+              <span>你的代码</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-2">
+              <div class="flow-actor-icon">📋</div>
+              <span>构造函数</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-3">
+              <div class="flow-actor-icon">🏗️</div>
+              <span>Build()</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-4">
+              <div class="flow-actor-icon">✨</div>
+              <span>结果 Shape</span>
+            </div>
+          </div>
+          <div class="flow-packet" id="flow-packet"></div>
+          <div class="flow-step-label" id="flow-label">点「下一步」开始追踪</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">下一步</button>
+            <button class="btn flow-reset-btn">重来</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 6: Quiz -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">动手想一想</h2>
+        <div class="quiz-container" id="quiz-module1">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="完全正确！打孔 = 从零件上挖走材料，所以是 CUT；零件是被加工的 Objects，圆柱是当刀使的 Tools。"
+               data-explanation-wrong="不太对——想想哪个形状是「被加工的」、哪个是「当刀使的」。打孔是把材料挖走，对应哪种玩法？">
+            <h3 class="quiz-question">你想在零件上打一个圆孔。该用哪个操作？两组怎么放？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>FUSE；Objects=零件，Tools=圆柱</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>CUT；Objects=零件，Tools=圆柱</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>CUT；Objects=圆柱，Tools=零件</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="对！CUT 是 Tools 切 Objects，CUT21 是反向：Objects 切 Tools。方向反了结果完全不同。"
+               data-explanation-wrong="再想想——枚举里 CUT 和 CUT21 是两个独立选项，21 这个数字暗示了什么顺序？">
+            <h3 class="quiz-question">CUT 和 CUT21 的区别是什么？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>CUT21 是 21 世纪新版的 CUT，精度更高</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>CUT 只能切一刀，CUT21 可以切 21 刀</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>切的方向相反：CUT 是 Tools 切 Objects，CUT21 反过来</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="正确！SECTION 不产生体，只收集两组形状相交处的边和点——正是「交线」。"
+               data-explanation-wrong="提示：你要的不是任何「体」，而是相交处的那条「线」。菜单上哪一项是专门干这个的？">
+            <h3 class="quiz-question">你只想要两个曲面的交线（不要任何体），该点哪个单？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>SECTION</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>COMMON</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>FUSE 之后再删掉体</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">再试一次</button>
+        </div>
+
+        <div class="callout callout-info" style="margin-top: var(--space-12);">
+          <div class="callout-icon">🎬</div>
+          <div class="callout-content">
+            <strong class="callout-title">下一章预告</strong>
+            <p>Build() 里那句「指挥求交与建造」是谁在真正干活？OCCT 把活儿分包给了四个部门——下一章，认识这个摄制组。</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<!-- Module 2: 认识演员表 -->
+<section class="module" id="module-2" style="background: var(--color-bg)">
+  <div class="module-content">
+
+    <header class="module-header animate-in">
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">02</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">认识演员表</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">布尔运算的四个幕后角色</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 开场 + 分层架构图 -->
+      <section class="screen animate-in" style="margin-top: var(--space-10);">
+        <p style="font-size: var(--text-lg);">上一章你看到 Build() 一行返回结果。但有个秘密：<strong>Build 自己什么几何活都不干</strong>。它是个项目经理，把活儿分包给一个「摄制组」。</p>
+        <p>把 OCCT 布尔运算想成电影摄制组——每个部门职责分明：</p>
+        <div class="icon-rows" style="display:flex; flex-direction:column; gap: var(--space-4); margin-top: var(--space-6);">
+          <div class="icon-row" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border-left: 4px solid var(--color-actor-1);">
+            <div class="icon-circle" style="background: var(--color-actor-1); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0;">🎬</div>
+            <div>
+              <strong>制片人 · <code>BRepAlgoAPI</code></strong>
+              <p style="margin:var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">对外签约（接收你的形状和订单），对内调度，最后交付成片。你平时只跟他打交道。</p>
+            </div>
+          </div>
+          <div class="icon-row" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border-left: 4px solid var(--color-actor-2);">
+            <div class="icon-circle" style="background: var(--color-actor-2); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0;">📷</div>
+            <div>
+              <strong>勘景摄影组 · <code>BOPAlgo_PaveFiller</code></strong>
+              <p style="margin:var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">跑遍两个形状的每个角落，找出所有「交叉点」——这是整部片子最贵的环节。</p>
+            </div>
+          </div>
+          <div class="icon-row" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border-left: 4px solid var(--color-actor-3);">
+            <div class="icon-circle" style="background: var(--color-actor-3); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0;">🎞️</div>
+            <div>
+              <strong>导演兼剪辑 · <code>BOPAlgo_BOP</code></strong>
+              <p style="margin:var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">按剧本（FUSE/COMMON/CUT）把切好的素材挑选、拼接成最终成片。</p>
+            </div>
+          </div>
+          <div class="icon-row" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border-left: 4px solid var(--color-actor-4);">
+            <div class="icon-circle" style="background: var(--color-actor-4); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0;">🗂️</div>
+            <div>
+              <strong>场记 + 档案室 · <code>BOPDS_DS</code></strong>
+              <p style="margin:var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">所有镜头、标记、中间结果都记录在册。摄影组写进去，导演读出来——部门间从不直接传东西。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 2: 求交占 70% -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">制片人怎么分活儿</h2>
+        <p>看真实源码（<code style="font-size: var(--text-xs);">BRepAlgoAPI_BooleanOperation.cxx</code>）。注意进度条的数字——它泄露了哪个环节最贵：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// If necessary perform intersection of the argument shapes</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myIsIntersectionNeeded)</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-comment">// Combine Objects and Tools into a single list for intersection</span></span>
+<span class="code-line">  NCollection_List&lt;TopoDS_Shape&gt; aLArgs = myArguments;</span>
+<span class="code-line">  <span class="code-keyword">for</span> (NCollection_List&lt;TopoDS_Shape&gt;::Iterator <span class="code-function">it</span>(myTools); it.<span class="code-function">More</span>(); it.<span class="code-function">Next</span>())</span>
+<span class="code-line">  {</span>
+<span class="code-line">    aLArgs.<span class="code-function">Append</span>(it.<span class="code-function">Value</span>());</span>
+<span class="code-line">  }</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-comment">// Perform intersection</span></span>
+<span class="code-line">  <span class="code-function">IntersectShapes</span>(aLArgs, aPS.<span class="code-function">Next</span>(<span class="code-number">70</span>));</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">如果还没做过求交，就先做。</p>
+              <p class="tl">把 Objects 和 Tools 合并成一张总名单——</p>
+              <p class="tl">求交阶段不分敌我，所有形状一起查。</p>
+              <p class="tl">逐个把 Tools 追加到名单末尾。</p>
+              <p class="tl">名单齐了。</p>
+              <p class="tl">送去求交（内部就是雇佣摄影组 PaveFiller）。</p>
+              <p class="tl">注意那个 70：整个任务 100 分进度，求交独占 70 分——最贵环节实锤。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 3: 挑导演 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">按订单挑导演</h2>
+        <p>求交完成后，制片人根据订单类型挑「导演」：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// Builder Initialization</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myOperation == BOPAlgo_SECTION)</span>
+<span class="code-line">{</span>
+<span class="code-line">  myBuilder = <span class="code-keyword">new</span> <span class="code-function">BOPAlgo_Section</span>(myAllocator);</span>
+<span class="code-line">  myBuilder-&gt;<span class="code-function">SetArguments</span>(myDSFiller-&gt;<span class="code-function">Arguments</span>());</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-keyword">else</span></span>
+<span class="code-line">{</span>
+<span class="code-line">  myBuilder = <span class="code-keyword">new</span> <span class="code-function">BOPAlgo_BOP</span>(myAllocator);</span>
+<span class="code-line">  myBuilder-&gt;<span class="code-function">SetArguments</span>(myArguments);</span>
+<span class="code-line">  ((BOPAlgo_BOP*)myBuilder)-&gt;<span class="code-function">SetTools</span>(myTools);</span>
+<span class="code-line">  ((BOPAlgo_BOP*)myBuilder)-&gt;<span class="code-function">SetOperation</span>(myOperation);</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">开始请导演。</p>
+              <p class="tl">订单是 SECTION（只要交线）？</p>
+              <p class="tl">请专拍纪录片的 Section 导演。</p>
+              <p class="tl">把素材清单给他。</p>
+              <p class="tl">其他订单（FUSE/COMMON/CUT）——</p>
+              <p class="tl">都请全能导演 BOP。</p>
+              <p class="tl">告诉他谁是 Objects、</p>
+              <p class="tl">谁是 Tools、</p>
+              <p class="tl">这次拍哪种片（操作类型）。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！分层 + 共享档案室</strong>
+            <p>四个部门从不直接传递数据——一切经过档案室 DS。这种「分层架构 + 共享<span class="term" data-definition="数据结构（Data Structure）：程序里组织和存放数据的方式。这里指 BOPDS_DS——一个专门为布尔运算设计的中央登记册。">数据结构</span>」让任何一层都能单独升级替换。工程师叫它「关注点分离」。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: 群聊动画 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">如果他们有个群聊……</h2>
+        <p>一次 Fuse 运算的完整对话，大概是这样的：</p>
+        <div class="chat-window" id="chat-module2">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="user" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-text-secondary)">👤</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-text-secondary)">用户</span>
+                <p>给这个箱子和球做个 Fuse！</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="api" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">🎬</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">API（制片人）</span>
+                <p>收到。@PaveFiller 先去把所有交点找出来</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="pavefiller" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">📷</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">PaveFiller（摄影组）</span>
+                <p>跑遍了 6 个面和 12 条边，交点、交线全记到 DS 了</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="ds" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">🗂️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">DS（场记）</span>
+                <p>已归档：新顶点 ×8，交线 ×1，切分边 ×24 ✅</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="api" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">🎬</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">API（制片人）</span>
+                <p>@BOP 你来，按 FUSE 剧本剪辑</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="5" data-sender="bop" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">🎞️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">BOP（导演）</span>
+                <p>查 DS 档案…挑出外壳零件…拼接完成 🎬</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="6" data-sender="api" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">🎬</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">API（制片人）</span>
+                <p>用户你好，成片在此 → Shape()</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" id="chat-module2-typing" style="display:none">
+            <div class="chat-avatar" id="chat-module2-typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">下一条</button>
+            <button class="btn chat-all-btn">播放全部</button>
+            <button class="btn chat-reset-btn">重播</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6); font-size: var(--text-sm); color: var(--color-text-secondary);">注意：GF（General Fuse）是基础算法——<span class="term" data-definition="Splitter（拆分器）：用 Tools 把 Objects 切开但不丢弃任何部分。Section：只收集交线。它们和 Fuse/Common/Cut 都构建在同一个 GF 之上。">Splitter、Section</span> 和布尔三件套全是它的「衍生剧」，共用同一个摄影组。</p>
+      </section>
+
+      <!-- Screen 5: Quiz -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">部门定位演练</h2>
+        <div class="quiz-container" id="quiz-module2">
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="对！交线棱边是求交阶段的产物。缺了它，说明摄影组（PaveFiller / 交点部分）没把 Face/Face 交线找出来——先查这里，而不是导演。"
+               data-explanation-wrong="想想分工：交线是「找交点」环节的产物还是「拼装」环节的产物？谁负责找交点？">
+            <h3 class="quiz-question">Fuse 结果缺了一条本该有的交线棱边。先怀疑哪个部门？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>摄影组 PaveFiller（交点部分）</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>导演 BOP（建造部分）</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>制片人 BRepAlgoAPI（API 层）</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="正确！交点部分对所有操作完全一样——差别只在最后怎么挑零件。所以求交一次，四种操作随便换。"
+               data-explanation-wrong="回想章首：四种操作的差别在「装盘」还是在「找交点」？哪一半是公用的？">
+            <h3 class="quiz-question">为什么 Section、Splitter、BOP 能共享同一个 PaveFiller？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>因为它们都是同一个程序员写的</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>因为求交对所有操作都一样，差别只在建造部分</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>为了省内存，被迫共享</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="对！GF（BOPAlgo_Builder）已经把「切分一切」做好了，你只需在它之上写自己的挑选规则——BOP 自己就是这么干的。"
+               data-explanation-wrong="提示：BOP、Section、Splitter 都是站在谁的肩膀上？自己从头写求交可不是好主意。">
+            <h3 class="quiz-question">你想自创一个新布尔类操作（比如只保留外壳）。最聪明的起点是？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>从零写一套求交算法</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>修改 BRepAlgoAPI_Fuse 的源码</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>基于 BOPAlgo_Builder（GF）扩展，复用现成的交点部分</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')">再试一次</button>
+        </div>
+
+        <div class="callout callout-info" style="margin-top: var(--space-12);">
+          <div class="callout-icon">📿</div>
+          <div class="callout-content">
+            <strong class="callout-title">下一章预告</strong>
+            <p>摄影组到底怎么「跑遍现场」？它有一条严格的安检流水线，还有一串漂亮的「珍珠项链」。</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<!-- Module 3: 交点部分 -->
+<section class="module" id="module-3" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+
+    <header class="module-header animate-in">
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">03</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">交点部分</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">PaveFiller 的安检流水线与珍珠项链</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 开场 + 珍珠项链图 -->
+      <section class="screen animate-in" style="margin-top: var(--space-10);">
+        <p style="font-size: var(--text-lg);">摄影组（PaveFiller）面对的现场：两个形状加起来十几个面、几十条边、一堆顶点。到底按什么顺序检查「谁碰了谁」？</p>
+        <p>先认识它最重要的发明——<strong>珍珠项链</strong>：</p>
+        <figure style="margin: var(--space-8) 0;">
+          <img src="images/pave-necklace.png" alt="珍珠项链隐喻：珍珠是 Pave，珠间绳段是 Pave Block" style="width:100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); display:block;">
+          <figcaption style="text-align:center; font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-3);">Pave = 珍珠，PaveBlock = 两珠之间的绳段</figcaption>
+        </figure>
+        <p>一条<span class="term" data-definition="边（edge）：形状的「棱」，底下是一条三维曲线。立方体有 12 条边。">边</span>是线绳；求交时发现的交点是穿上去的珍珠（<span class="term" data-definition="Pave：记录「哪个顶点 + 它在曲线上的位置参数 t」的小结构。它把顶点「钉」在边上。">Pave</span>）；相邻两颗珍珠之间的绳段叫 <span class="term" data-definition="Pave Block：一条边被交点切分后的「段」。建造部分拼装结果用的就是这些段，而不是原始整边。">Pave Block</span>。每条有限边天生自带一个 Pave Block——首尾两个端点就是头两颗珍珠。</p>
+      </section>
+
+      <!-- Screen 2: CSS 珍珠项链示意 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">动手摸一摸：一条被切成三段的边</h2>
+        <p>下面是一条边的「项链视图」。鼠标悬停每个绳段试试：</p>
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-md); padding: var(--space-10) var(--space-8); margin: var(--space-6) 0;">
+          <div style="display:flex; align-items:center; width:100%;">
+            <div title="Pave ①（参数 t=0，边的起点）" style="width:22px; height:22px; border-radius:50%; background: radial-gradient(circle at 35% 30%, #ffffff, #d8d3ca); box-shadow: var(--shadow-sm); border:1px solid var(--color-border); flex-shrink:0; z-index:1;"></div>
+            <div title="PaveBlock A" onmouseover="this.style.transform='scaleY(1.8)'; this.style.opacity='1'" onmouseout="this.style.transform='scaleY(1)'; this.style.opacity='0.85'" style="height:8px; flex:1.2; background:#9CC8D9; opacity:0.85; transition: all 150ms; cursor:pointer; border-radius:4px; margin:0 -2px;"></div>
+            <div title="Pave ②（交点，t=0.38）" style="width:22px; height:22px; border-radius:50%; background: radial-gradient(circle at 35% 30%, #ffffff, #d8d3ca); box-shadow: var(--shadow-sm); border:1px solid var(--color-border); flex-shrink:0; z-index:1;"></div>
+            <div title="PaveBlock B" onmouseover="this.style.transform='scaleY(1.8)'; this.style.opacity='1'" onmouseout="this.style.transform='scaleY(1)'; this.style.opacity='0.85'" style="height:8px; flex:0.8; background:#2A7B9B; opacity:0.85; transition: all 150ms; cursor:pointer; border-radius:4px; margin:0 -2px;"></div>
+            <div title="Pave ③（交点，t=0.64）" style="width:22px; height:22px; border-radius:50%; background: radial-gradient(circle at 35% 30%, #ffffff, #d8d3ca); box-shadow: var(--shadow-sm); border:1px solid var(--color-border); flex-shrink:0; z-index:1;"></div>
+            <div title="PaveBlock C" onmouseover="this.style.transform='scaleY(1.8)'; this.style.opacity='1'" onmouseout="this.style.transform='scaleY(1)'; this.style.opacity='0.85'" style="height:8px; flex:1; background:#1F6280; opacity:0.85; transition: all 150ms; cursor:pointer; border-radius:4px; margin:0 -2px;"></div>
+            <div title="Pave ④（参数 t=1，边的终点）" style="width:22px; height:22px; border-radius:50%; background: radial-gradient(circle at 35% 30%, #ffffff, #d8d3ca); box-shadow: var(--shadow-sm); border:1px solid var(--color-border); flex-shrink:0; z-index:1;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top: var(--space-4); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-muted);">
+            <span>t=0 起点</span><span>PaveBlock A</span><span>t=0.38</span><span>B</span><span>t=0.64</span><span>C</span><span>t=1 终点</span>
+          </div>
+        </div>
+        <p>每颗珍珠的位置用<span class="term" data-definition="参数 t：曲线上的「里程数」。t=0 是曲线起点，t=1（或曲线总长）是终点。用一个数就能精确说出「在曲线的哪里」。">参数 t</span> 表示——所以珍珠可以排序、绳段可以精确定义。两条边若整段重合，它们的 Pave Block 还会被绑成一个 <span class="term" data-definition="Common Block（共块）：几何上重合的多个 PaveBlock 被捆在一起，避免同一段空间被算成两份材料。">Common Block</span>。</p>
+      </section>
+
+      <!-- Screen 3: 流水线 code↔English -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">安检流水线：从小到大</h2>
+        <p>真实源码（<code style="font-size: var(--text-xs);">BOPAlgo_PaveFiller.cxx</code> 的 PerformInternal）。注释里的数字是「维度暗号」：0=顶点，1=边，2=面：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// 00</span></span>
+<span class="code-line"><span class="code-function">PerformVV</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_PerformVV)));</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">HasErrors</span>()) { <span class="code-keyword">return</span>; }</span>
+<span class="code-line"><span class="code-comment">// 01</span></span>
+<span class="code-line"><span class="code-function">PerformVE</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_PerformVE)));</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">HasErrors</span>()) { <span class="code-keyword">return</span>; }</span>
+<span class="code-line"><span class="code-function">UpdatePaveBlocksWithSDVertices</span>();</span>
+<span class="code-line"><span class="code-comment">// 11</span></span>
+<span class="code-line"><span class="code-function">PerformEE</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_PerformEE)));</span>
+<span class="code-line"><span class="code-comment">// 02</span></span>
+<span class="code-line"><span class="code-function">PerformVF</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_PerformVF)));</span>
+<span class="code-line"><span class="code-comment">// 12</span></span>
+<span class="code-line"><span class="code-function">PerformEF</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_PerformEF)));</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">00 = 顶点查顶点：有没有两颗顶点撞在一起？</p>
+              <p class="tl">执行，并推进进度条。</p>
+              <p class="tl">出错立刻收工——每一站都这样。</p>
+              <p class="tl">01 = 顶点查边：顶点落在别人的边上了吗？</p>
+              <p class="tl">执行。</p>
+              <p class="tl">照例检查错误。</p>
+              <p class="tl">把「撞在一起的同位顶点」同步进所有珍珠记录（SD = Same Domain，同域）。</p>
+              <p class="tl">11 = 边查边：两条边相交？穿珍珠！</p>
+              <p class="tl">02 = 顶点查面：顶点扎进面里了吗？</p>
+              <p class="tl">12 = 边查面：边穿过面？交点处穿珍珠！</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6);">压轴的是 22（面/面求交，算出<span class="term" data-definition="交线（section curve）：两个面相交形成的三维曲线——比如圆柱穿过平面留下的椭圆。是布尔运算中最贵的计算。">交线</span>），然后一声令下剪断所有边：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// 22</span></span>
+<span class="code-line"><span class="code-function">PerformFF</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_PerformFF)));</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">HasErrors</span>()) { <span class="code-keyword">return</span>; }</span>
+<span class="code-line"><span class="code-function">UpdateBlocksWithSharedVertices</span>();</span>
+<span class="code-line">myDS-&gt;<span class="code-function">RefineFaceInfoIn</span>();</span>
+<span class="code-line"><span class="code-function">MakeSplitEdges</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_MakeSplitEdges)));</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">22 = 面查面：计算交线——最贵的一站。</p>
+              <p class="tl">执行。</p>
+              <p class="tl">照例查错。</p>
+              <p class="tl">让交线经过的顶点全网同步。</p>
+              <p class="tl">档案室刷新每个面的「面情报」（FaceInfo）。</p>
+              <p class="tl">MakeSplitEdges：沿所有珍珠，把每条边真正剪成小段。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: 流水线动画 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">流水线全景，点一遍</h2>
+        <p>为什么从小到大？因为低维交点常常「顺便解决」高维相交——两条边的交点，往往正是两个面交线上的点，不用再算一遍。</p>
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"VV 顶点/顶点：距离小于容差之和的顶点合并成一颗新珍珠"},
+          {"highlight":"flow-actor-2","label":"VE 顶点/边：顶点落在边上 —— 给那条边穿珍珠","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-3","label":"EE 边/边：两边相交 —— 双方各穿一颗珍珠；整段重合则绑成 Common Block","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-4","label":"VF/EF 顶点/面、边/面：扎进面或穿过面的统统记录","packet":true,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-5","label":"FF 面/面：计算交线（最贵！），交线上也穿珍珠","packet":true,"from":"actor-4","to":"actor-5"},
+          {"highlight":"flow-actor-6","label":"MakeSplitEdges：沿所有珍珠剪断每条边 —— 零件准备完毕，全部入库 DS","packet":true,"from":"actor-5","to":"actor-6"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1">
+              <div class="flow-actor-icon">·</div>
+              <span>VV</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-2">
+              <div class="flow-actor-icon">⋅—</div>
+              <span>VE</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-3">
+              <div class="flow-actor-icon">✕</div>
+              <span>EE</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-4">
+              <div class="flow-actor-icon">⊿</div>
+              <span>VF/EF</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-5">
+              <div class="flow-actor-icon">◫</div>
+              <span>FF</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-6">
+              <div class="flow-actor-icon">✂️</div>
+              <span>剪边</span>
+            </div>
+          </div>
+          <div class="flow-packet" id="flow-packet"></div>
+          <div class="flow-step-label" id="flow-label">点「下一步」走一遍流水线</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">下一步</button>
+            <button class="btn flow-reset-btn">重来</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！没有「精确相等」，只有「容差内相等」</strong>
+            <p>每个顶点/边/面都带一个<span class="term" data-definition="容差（tolerance）：形状自带的「误差半径」。两个东西的距离小于双方容差之和，就算「碰到了」。浮点数世界没有绝对精确。">容差</span>。两个东西距离 ≤ 容差之和 = 相交。这是几何内核在浮点世界的生存法则——记住它，下下章的 Fuzzy Value 你会秒懂。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 5: Pave 类 + Quiz -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">珍珠本珠：源码只有两件事</h2>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">//! The class BOPDS_Pave is to store</span></span>
+<span class="code-line"><span class="code-comment">//! information about vertex on an edge</span></span>
+<span class="code-line"><span class="code-keyword">class</span> <span class="code-function">BOPDS_Pave</span></span>
+<span class="code-line">{</span>
+<span class="code-line"><span class="code-keyword">public</span>:</span>
+<span class="code-line">  DEFINE_STANDARD_ALLOC</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-comment">//! Empty constructor</span></span>
+<span class="code-line">  <span class="code-function">BOPDS_Pave</span>();</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-comment">//! Constructor with index and parameter</span></span>
+<span class="code-line">  <span class="code-function">BOPDS_Pave</span>(<span class="code-keyword">const</span> <span class="code-keyword">int</span> theIndex, <span class="code-keyword">const</span> <span class="code-keyword">double</span> theParameter);</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">官方注释：这个类存「边上的顶点」信息。</p>
+              <p class="tl">就是我们说的珍珠。</p>
+              <p class="tl">类定义开始。</p>
+              <p class="tl">公开接口。</p>
+              <p class="tl">内存分配的标准样板代码（可忽略）。</p>
+              <p class="tl">空构造：先做一颗空白珍珠。</p>
+              <p class="tl">真正有用的构造：传入两个值——</p>
+              <p class="tl">顶点在档案室的编号 + 它在曲线上的里程 t。一颗珍珠就这两样东西。</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; margin-top: var(--space-12);">流水线演练</h2>
+        <div class="quiz-container" id="quiz-module3">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="对！棱对棱相碰是「边/边」干涉，流水线上对应 EE（暗号 11）那一站。"
+               data-explanation-wrong="想想碰在一起的是什么维度的东西：棱是「边」（维度 1），边碰边在哪一站检查？">
+            <h3 class="quiz-question">两个立方体棱对棱搭在一起。这次相碰最先在流水线哪一站被发现？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>VV（顶点/顶点）</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>EE（边/边）</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>FF（面/面）</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="正确！两点没合并 = VV 干涉没触发 = 它们的距离超过了容差之和。调大容差（Fuzzy Value）通常能解决——模块 5 详讲。"
+               data-explanation-wrong="回想 VV 那一站的合并条件：距离 ≤ 容差之和。两点没被合并，说明什么没满足？">
+            <h3 class="quiz-question">结果里两个明明重合的角点变成了两个独立顶点。最该检查什么？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>容差——两点距离可能略超容差之和，VV 合并没触发</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>显卡驱动版本</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>操作类型选错了（应该用 SECTION）</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="对！先小后大，低维结果可以直接复用——边边交点往往就是面面交线上的点，不必重复计算。纯粹是省钱。"
+               data-explanation-wrong="提示：两条边的交点，和两个面的交线，几何上有什么关系？谁能帮谁省工作量？">
+            <h3 class="quiz-question">为什么流水线先做 VV，最后才做 FF，而不是反过来？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>历史习惯，顺序其实无所谓</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>顶点更重要，必须优先处理</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>低维结果可复用：边边交点常常就是面面交线上的点，先算小的避免重复劳动</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">再试一次</button>
+        </div>
+
+        <div class="callout callout-info" style="margin-top: var(--space-12);">
+          <div class="callout-icon">🍰</div>
+          <div class="callout-content">
+            <strong class="callout-title">下一章预告</strong>
+            <p>现在所有边都被剪成段、所有面都被交线划成片——谁来决定哪些零件进成片？后厨已经把蛋糕切好了，该装盘了。</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<!-- Module 4: 建造部分 -->
+<section class="module" id="module-4" style="background: var(--color-bg)">
+  <div class="module-content">
+
+    <header class="module-header animate-in">
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">04</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">建造部分</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">GF 切好整个蛋糕，BOP 按订单装盘</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 蛋糕隐喻 -->
+      <section class="screen animate-in" style="margin-top: var(--space-10);">
+        <p style="font-size: var(--text-lg);">零件已切好、整齐躺在档案室。现在导演（<code>BOPAlgo_BOP</code>）登场——他从不亲自切割，只负责<strong>挑选与拼装</strong>。</p>
+        <figure style="margin: var(--space-8) 0;">
+          <img src="images/builder-cake.png" alt="自助蛋糕台：整切蛋糕与三个不同装盘订单" style="width:100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); display:block;">
+          <figcaption style="text-align:center; font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-3);">后厨只切一次（左），订单各自装盘（右）：全要 / 只要公共块 / 只要自己的块</figcaption>
+        </figure>
+        <p>这就是 <span class="term" data-definition="General Fuse（GF，通用融合）：把所有参与形状沿一切相交处完全切开、得到「全部碎块」的基础算法。OCCT 类名 BOPAlgo_Builder。">General Fuse</span> 的精髓：把两个叠在一起的蛋糕沿所有接触面<strong>全部切开</strong>，得到三类碎块——S1 独有（Sp1）、S2 独有（Sp2）、公共（Sp12）。四种布尔操作只是四张不同的「装盘订单」。</p>
+      </section>
+
+      <!-- Screen 2: 订单卡片 + 拖拽 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">四张装盘订单</h2>
+        <div style="display:flex; gap: var(--space-6); justify-content:center; margin: var(--space-4) 0; font-size: var(--text-sm);">
+          <span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#5B7DB1; vertical-align:middle; margin-right:6px;"></span>Sp1 = S1 独有</span>
+          <span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#E8C77D; vertical-align:middle; margin-right:6px;"></span>Sp2 = S2 独有</span>
+          <span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#7FA86B; vertical-align:middle; margin-right:6px;"></span>Sp12 = 公共</span>
+        </div>
+        <div class="pattern-cards" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4);">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <h4 class="pattern-title" style="margin: 0 0 var(--space-2);">FUSE</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">全都装走：<strong>Sp1 + Sp2 + Sp12</strong>，再把内壁熔掉变成一个整体。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <h4 class="pattern-title" style="margin: 0 0 var(--space-2);">COMMON</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">只装公共夹层：<strong>Sp12</strong>。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <h4 class="pattern-title" style="margin: 0 0 var(--space-2);">CUT (12)</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">只装第一个蛋糕没碰过对方的部分：<strong>Sp1</strong>。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <h4 class="pattern-title" style="margin: 0 0 var(--space-2);">CUT21</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">反向订单：<strong>Sp2</strong>。</p>
+          </div>
+        </div>
+
+        <h3 style="font-family: var(--font-display); font-size: var(--text-xl); font-weight:600; margin-top: var(--space-12);">拖一拖：订单 → 装盘内容</h3>
+        <p style="font-size: var(--text-sm); color: var(--color-text-secondary);">把左边的「订单」拖到右边对应的「盘子」上：</p>
+        <div class="dnd-container" id="dnd-module4">
+          <div class="dnd-chips">
+            <div class="dnd-chip" draggable="true" data-answer="fuse">FUSE 的结果</div>
+            <div class="dnd-chip" draggable="true" data-answer="common">COMMON 的结果</div>
+            <div class="dnd-chip" draggable="true" data-answer="cut12">CUT 的结果</div>
+            <div class="dnd-chip" draggable="true" data-answer="cut21">CUT21 的结果</div>
+          </div>
+          <div class="dnd-zones">
+            <div class="dnd-zone" data-correct="fuse">
+              <p class="dnd-zone-label">Sp1 + Sp2 + Sp12（全部碎块）</p>
+              <div class="dnd-zone-target">拖到这里</div>
+            </div>
+            <div class="dnd-zone" data-correct="common">
+              <p class="dnd-zone-label">Sp12（只有公共块）</p>
+              <div class="dnd-zone-target">拖到这里</div>
+            </div>
+            <div class="dnd-zone" data-correct="cut12">
+              <p class="dnd-zone-label">Sp1（只有 S1 的独有块）</p>
+              <div class="dnd-zone-target">拖到这里</div>
+            </div>
+            <div class="dnd-zone" data-correct="cut21">
+              <p class="dnd-zone-label">Sp2（只有 S2 的独有块）</p>
+              <div class="dnd-zone-target">拖到这里</div>
+            </div>
+          </div>
+          <button class="btn" onclick="checkDnD('dnd-module4')">检查配对</button>
+          <button class="btn" onclick="resetDnD('dnd-module4')">重置</button>
+        </div>
+      </section>
+
+      <!-- Screen 3: BOP 流程 code -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">导演的工作清单</h2>
+        <p>BOP 的总流程（<code style="font-size: var(--text-xs);">BOPAlgo_BOP.cxx</code> 的 PerformInternal1）从「填映像表」开始。<span class="term" data-definition="Images（映像）：一张「原始形状 → 它切分后的替身们」的映射表。原始边 E 的 images 就是它被剪出的那些小段。建造部分的核心数据。">Images</span> 是核心词——记录每个原始形状变成了哪些碎块：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// 3. Fill Images</span></span>
+<span class="code-line"><span class="code-comment">// 3.1 Vertices</span></span>
+<span class="code-line"><span class="code-function">FillImagesVertices</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_TreatVertices)));</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">HasErrors</span>())</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-keyword">return</span>;</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-function">BuildResult</span>(TopAbs_VERTEX);</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">HasErrors</span>())</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-keyword">return</span>;</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">第三步：填映像表。</p>
+              <p class="tl">从最低维的顶点开始。</p>
+              <p class="tl">登记每个原始顶点的「替身」（被合并成了哪颗新顶点）。</p>
+              <p class="tl">照例出错就收工。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">用顶点映像先拼一版顶点级结果。</p>
+              <p class="tl">然后逐级向上：边 → 线框 → 面 → 壳 → 体，</p>
+              <p class="tl">每一级都是「填映像 → 拼结果」。</p>
+              <p class="tl">像盖楼：地基打牢才砌上一层。</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: BuildRC Fuse 分支 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">最简单的订单：FUSE 全都要</h2>
+        <p>BuildRC（Build Result Compound）按订单装盘。看 Fuse 分支——配一个「防重名册」保证每块蛋糕只装一次：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// A. Fuse</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myOperation == BOPAlgo_FUSE)</span>
+<span class="code-line">{</span>
+<span class="code-line">  NCollection_Map&lt;TopoDS_Shape, TopTools_ShapeMapHasher&gt; aMFence;</span>
+<span class="code-line">  aType = <span class="code-function">TypeToExplore</span>(myDims[<span class="code-number">0</span>]);</span>
+<span class="code-line">  TopExp_Explorer <span class="code-function">aExp</span>(myShape, aType);</span>
+<span class="code-line">  <span class="code-keyword">for</span> (; aExp.<span class="code-function">More</span>(); aExp.<span class="code-function">Next</span>())</span>
+<span class="code-line">  {</span>
+<span class="code-line">    <span class="code-keyword">const</span> TopoDS_Shape&amp; aS = aExp.<span class="code-function">Current</span>();</span>
+<span class="code-line">    <span class="code-keyword">if</span> (aMFence.<span class="code-function">Add</span>(aS))</span>
+<span class="code-line">    {</span>
+<span class="code-line">      aBB.<span class="code-function">Add</span>(aC, aS);</span>
+<span class="code-line">    }</span>
+<span class="code-line">  }</span>
+<span class="code-line">  myRC = aC;</span>
+<span class="code-line">  <span class="code-keyword">return</span>;</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">A 计划：订单是 FUSE？</p>
+              <p class="tl">进入全都要模式。</p>
+              <p class="tl"></p>
+              <p class="tl">准备一本「防重名册」aMFence（集合，自动去重）。</p>
+              <p class="tl">确定要遍历的零件类型（比如实体）。</p>
+              <p class="tl">派一个探索者走遍 GF 草稿结果。</p>
+              <p class="tl">逐个零件看过去：</p>
+              <p class="tl"></p>
+              <p class="tl">拿到当前零件。</p>
+              <p class="tl">名册里没登记过？（Add 返回 true = 新面孔）</p>
+              <p class="tl"></p>
+              <p class="tl">装进结果盘 aC。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">这盘就是草稿结果 myRC。</p>
+              <p class="tl">FUSE 订单完成，收工。</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6);">Common/Cut 分支则麻烦些：每块零件要先判断 <span class="term" data-definition="IN/OUT/ON：一块零件相对另一组形状的三种状态——在它内部 / 在它外部 / 贴在它边界上。Common 收 IN 的，Cut 收 OUT 的。">IN/OUT/ON</span> 状态再决定去留——「这块在对方肚子里吗？」</p>
+      </section>
+
+      <!-- Screen 5: 群聊 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">剪辑机房的对话</h2>
+        <div class="chat-window" id="chat-module4">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="bop" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">🎞️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">BOP（导演）</span>
+                <p>@DS 把箱子和球的全部切块清单给我</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="ds" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">🗂️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">DS（档案室）</span>
+                <p>送达：箱子独有 ×5 块，球独有 ×3 块，公共 ×1 块</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="bop" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">🎞️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">BOP（导演）</span>
+                <p>订单是 COMMON——只要公共那块</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="bop" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">🎞️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">BOP（导演）</span>
+                <p>分类完毕：IN ✅，其余退回</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="bop" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">🎞️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">BOP（导演）</span>
+                <p>拼装、缝合、登记族谱…成片输出 🎬</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" id="chat-module4-typing" style="display:none">
+            <div class="chat-avatar" id="chat-module4-typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">下一条</button>
+            <button class="btn chat-all-btn">播放全部</button>
+            <button class="btn chat-reset-btn">重播</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！族谱（History）是参数化 CAD 的根基</strong>
+            <p>「登记族谱」= 记录每个原始形状被 <span class="term" data-definition="History 三件套：Modified（被改成了谁）/ Generated（生出了谁，如交线）/ Deleted（消失了）。上层应用靠它在模型改动后重新定位特征。">Modified / Generated / Deleted</span> 的完整记录。正因为有它，你改了草图之后 CAD 还能「重新找到那个孔」。这就是文档说 GF 是 history-based 架构的含义。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 6: Quiz -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">装盘演练</h2>
+        <div class="quiz-container" id="quiz-module4">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="对！切分本身（交点部分）没问题的话，残留多余材料说明某块零件的 IN/OUT 状态判断错了——它本该被判 IN（在工具内部）然后丢弃。"
+               data-explanation-wrong="想想 Cut 的装盘规则：只收 OUT 的零件。多装了一块，说明哪一步把它的「位置身份」搞错了？">
+            <h3 class="quiz-question">Cut 的结果里残留了一小块本该被切掉的材料。最可能哪个环节出错？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>FUSE 和 CUT 的枚举值写反了</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>那块零件的 IN/OUT 状态被分类错了</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>珍珠（Pave）穿太多了</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="正确！切分是最贵的活，GF 干一次就够；四种操作只是过滤规则不同。一套引擎 + 四个过滤器，比四套引擎好维护得多。"
+               data-explanation-wrong="回想蛋糕台：后厨切几次蛋糕？四个盘子的差别在哪个环节产生？">
+            <h3 class="quiz-question">为什么 OCCT 不为 Fuse/Common/Cut 各写一套独立算法？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>共享 GF：昂贵的切分只做一次，四种操作只是不同的挑选过滤器</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>当年人手不够，只好偷懒复用</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>C++ 不支持写四个独立的类</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">再试一次</button>
+        </div>
+
+        <div class="callout callout-info" style="margin-top: var(--space-12);">
+          <div class="callout-icon">🎛️</div>
+          <div class="callout-content">
+            <strong class="callout-title">下一章预告</strong>
+            <p>同样的代码，有人跑出完美结果，有人跑出碎渣——差别往往只是几个开关。最后一章，学会拨布尔运算的「调音台」。</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<!-- Module 5: 调参与排错 -->
+<section class="module" id="module-5" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+
+    <header class="module-header animate-in">
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">05</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">调参与排错</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">布尔运算的调音台</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 开场 + 推子面板 -->
+      <section class="screen animate-in" style="margin-top: var(--space-10);">
+        <p style="font-size: var(--text-lg);">前四章你看懂了整条流水线。但现实是：两个明明相交的零件，Fuse 出来却是空的；或者一次运算跑 30 秒。先别怀疑人生——大概率只是「推子」没调对。</p>
+        <p>布尔运算像一张录音棚调音台，暴露了这排推子：</p>
+        <div class="pattern-cards" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); margin-top: var(--space-6);">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-1); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🎚️</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">Fuzzy Value</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">容差推子。模型有微小缝隙、差一点点就相交时调大它。默认 1e-7。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-2); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">⚡</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">Run Parallel</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">多核开关。大模型、批量运算时打开。默认关。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-5); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🛡️</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">Non-Destructive</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">安全模式。保证输入形状不被就地修改（默认会更新容差）。要保留原模型必开。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-4); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🧲</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">Glue</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">贴合模式。确定形状只贴不穿透时开 GlueShift/GlueFull，跳过昂贵求交，提速明显。用错会出错果。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-3); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">📦</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">Use OBB</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;"><span class="term" data-definition="OBB（Oriented Bounding Box，有向包围盒）：贴合形状方向的「快递箱」。两个箱子不相交，里面的东西肯定不相交——快速排除法。">OBB</span> 加速开关。斜放的细长形状多时打开，粗筛更准。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-text-muted); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-text-muted); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🩺</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">Check Inverted</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">「内外翻转体」体检开关。默认开，确认输入干净可关掉换速度。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 2: 官方用法 code -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">一行一个推子（官方示例）</h2>
+        <p>来自 OCCT 官方文档 <code style="font-size: var(--text-xs);">dox/specification/boolean_operations</code> 的 GF 用法——生产代码可直接照抄这个骨架：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">BOPAlgo_Builder aBuilder;</span>
+<span class="code-line"><span class="code-comment">// Setting arguments</span></span>
+<span class="code-line">NCollection_List&lt;TopoDS_Shape&gt; aLSObjects = …; <span class="code-comment">// Objects</span></span>
+<span class="code-line">aBuilder.<span class="code-function">SetArguments</span>(aLSObjects);</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Set parallel processing mode (default is false)</span></span>
+<span class="code-line"><span class="code-keyword">bool</span> bRunParallel = <span class="code-keyword">true</span>;</span>
+<span class="code-line">aBuilder.<span class="code-function">SetRunParallel</span>(bRunParallel);</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Set Fuzzy value (default is Precision::Confusion())</span></span>
+<span class="code-line"><span class="code-keyword">double</span> aFuzzyValue = <span class="code-number">1.e-5</span>;</span>
+<span class="code-line">aBuilder.<span class="code-function">SetFuzzyValue</span>(aFuzzyValue);</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Set safe processing mode (default is false)</span></span>
+<span class="code-line"><span class="code-keyword">bool</span> bSafeMode = <span class="code-keyword">true</span>;</span>
+<span class="code-line">aBuilder.<span class="code-function">SetNonDestructive</span>(bSafeMode);</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Set Gluing mode for coinciding arguments (default is off)</span></span>
+<span class="code-line">BOPAlgo_GlueEnum aGlue = BOPAlgo_GlueShift;</span>
+<span class="code-line">aBuilder.<span class="code-function">SetGlue</span>(aGlue);</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Perform the operation</span></span>
+<span class="code-line">aBuilder.<span class="code-function">Perform</span>();</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Check for the errors</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (aBuilder.<span class="code-function">HasErrors</span>())</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-keyword">return</span>;</span>
+<span class="code-line">}</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// result of the operation</span></span>
+<span class="code-line"><span class="code-keyword">const</span> TopoDS_Shape&amp; aResult = aBuilder.<span class="code-function">Shape</span>();</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">请一位 GF 后厨（Builder）。</p>
+              <p class="tl">把要加工的形状列成清单交给他。</p>
+              <p class="tl">（GF 不分 Objects/Tools，全是平等的参与者。）</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">推子 1：打开多核并行。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">推子 2：容差调到 1e-5——比默认宽容 100 倍，吞掉建模小缝隙。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">推子 3：开安全模式，输入形状一根毛都不动。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">推子 4：贴合模式 GlueShift——确定只贴不穿透时的加速器。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">开工！</p>
+              <p class="tl"></p>
+              <p class="tl">铁律：先查错——</p>
+              <p class="tl">有致命错误就别碰结果。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">体检通过，才取结果。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 3: 参数夹紧 + 调试彩蛋 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">两个值得偷学的源码细节</h2>
+        <p>细节一：Fuzzy 推子有「下限保护」（<code style="font-size: var(--text-xs);">BOPAlgo_Options.cxx</code>）：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">void</span> BOPAlgo_Options::<span class="code-function">SetFuzzyValue</span>(<span class="code-keyword">const</span> <span class="code-keyword">double</span> theFuzz)</span>
+<span class="code-line">{</span>
+<span class="code-line">  myFuzzyValue = std::<span class="code-function">max</span>(theFuzz, Precision::<span class="code-function">Confusion</span>());</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">设置容差推子。</p>
+              <p class="tl"></p>
+              <p class="tl">不管你传多小，最低也按系统精度（1e-7）算。看到 std::max 包住输入——这是「参数夹紧」防御术，值得偷学。</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-8);">细节二：隐藏的调试彩蛋（<code style="font-size: var(--text-xs);">BRepAlgoAPI_BooleanOperation.cxx</code>）。设一个<span class="term" data-definition="环境变量：操作系统层面的全局配置项，程序启动时读取。像贴在门口的便条，所有程序路过都能看一眼。">环境变量</span>就能让 OCCT 自动抓取翻车现场：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">OSD_Environment         <span class="code-function">env</span>(<span class="code-string">"CSF_DEBUG_BOP"</span>);</span>
+<span class="code-line">TCollection_AsciiString pathdump = env.<span class="code-function">Value</span>();</span>
+<span class="code-line">myIsDump                         = (!pathdump.<span class="code-function">IsEmpty</span>());</span>
+<span class="code-line">myPath                           = pathdump.<span class="code-function">ToCString</span>();</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">读环境变量 CSF_DEBUG_BOP。</p>
+              <p class="tl">取出它的值（一个目录路径）。</p>
+              <p class="tl">设置了就打开「行车记录仪」模式。</p>
+              <p class="tl">每当输入或结果体检不合格，自动把两个输入形状 + 复现脚本 dump 到该目录——OCCT 开发者自己就这么抓 bug。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: 症状→药方 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">症状 → 药方速查表</h2>
+        <div class="badge-list" style="display:flex; flex-direction:column; gap: var(--space-3);">
+          <div class="badge-item" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); border:1px solid var(--color-border-light); border-radius: var(--radius-sm); background: var(--color-surface);">
+            <code class="badge-code" style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-error-light); color: var(--color-error); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); white-space:nowrap;">结果为空 / 缺块</code>
+            <span class="badge-desc" style="font-size: var(--text-sm);">先 <code>BRepAlgoAPI_Check</code> 体检两个输入；再把 Fuzzy 调大（如 1e-5）重试——多半是微小缝隙没「碰上」。</span>
+          </div>
+          <div class="badge-item" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); border:1px solid var(--color-border-light); border-radius: var(--radius-sm); background: var(--color-surface);">
+            <code class="badge-code" style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-error-light); color: var(--color-error); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); white-space:nowrap;">跑得太慢</code>
+            <span class="badge-desc" style="font-size: var(--text-sm);">开 <code>SetRunParallel(true)</code>；零件只贴不穿透的场景再加 <code>SetGlue(BOPAlgo_GlueShift)</code>。</span>
+          </div>
+          <div class="badge-item" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); border:1px solid var(--color-border-light); border-radius: var(--radius-sm); background: var(--color-surface);">
+            <code class="badge-code" style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-error-light); color: var(--color-error); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); white-space:nowrap;">原始模型被改了</code>
+            <span class="badge-desc" style="font-size: var(--text-sm);">默认会就地更新输入的容差。开 <code>SetNonDestructive(true)</code> 即可保护原件。</span>
+          </div>
+          <div class="badge-item" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); border:1px solid var(--color-border-light); border-radius: var(--radius-sm); background: var(--color-surface);">
+            <code class="badge-code" style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-error-light); color: var(--color-error); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); white-space:nowrap;">结果怪异 / 自相交</code>
+            <span class="badge-desc" style="font-size: var(--text-sm);">「垃圾进，垃圾出」——输入本身可能自相交。Check 输入 + 读 <code>HasWarnings()</code> 的警告清单。</span>
+          </div>
+          <div class="badge-item" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); border:1px solid var(--color-border-light); border-radius: var(--radius-sm); background: var(--color-surface);">
+            <code class="badge-code" style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-error-light); color: var(--color-error); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); white-space:nowrap;">偶发崩溃要报 issue</code>
+            <span class="badge-desc" style="font-size: var(--text-sm);">设 <code>CSF_DEBUG_BOP=/某目录</code>，让 OCCT 自动 dump 翻车现场（输入 + 复现脚本）。</span>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！错误 ≠ 警告，双轨报告</strong>
+            <p><code>HasErrors()</code> 是致命伤（无结果可取），<code>HasWarnings()</code> 是亚健康（结果可用但有隐患）。大型几何库普遍采用这种双轨制——忽略警告等于埋雷。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 5: 终章 Quiz -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">终章演练：你来当工程师</h2>
+        <div class="quiz-container" id="quiz-module5">
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="对！面贴面但有肉眼难见的缝隙 = 距离略超容差之和。把 Fuzzy 调大到 1e-5 左右，缝隙就被「吞」掉了。"
+               data-explanation-wrong="复习模块 3 的容差法则：两个东西怎样才算「碰到」？缝隙太小看不见但超过了什么？">
+            <h3 class="quiz-question">两个零件理论上面贴面，Fuse 后却是两个独立体（中间有肉眼难见的缝）。先拨哪个推子？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Fuzzy Value 调大（如 1e-5）</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Run Parallel 打开</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Check Inverted 关掉</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="正确！批量任务首选并行；如果 200 对零件都是「贴而不穿」的装配关系，再加 GlueShift 跳过大量无谓求交。"
+               data-explanation-wrong="200 对独立运算，最大的免费加速来自哪里？多核在等你。">
+            <h3 class="quiz-question">要对 200 对零件批量做 Cut。最先打开什么？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>CSF_DEBUG_BOP</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>SetRunParallel(true)，贴合场景再加 Glue</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>把 Fuzzy 调到最大保平安</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="对！默认模式会就地更新输入形状的容差。SetNonDestructive(true) 保证原件分毫不动——代价是稍慢一点。"
+               data-explanation-wrong="推子面板里有一个专门「保护输入原件」的开关，还记得吗？">
+            <h3 class="quiz-question">运算后用户的原始模型容差被改了，客户投诉。怎么避免？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>每次运算前手动备份所有形状</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>把 Fuzzy 设成 0</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>SetNonDestructive(true)</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="正确！设置 CSF_DEBUG_BOP 指向一个目录，体检不合格时 OCCT 自动 dump 输入形状和 Draw 复现脚本——给官方报 issue 的标准姿势。"
+               data-explanation-wrong="本章那个「行车记录仪」彩蛋还记得吗？它专为抓偶发翻车现场而生。">
+            <h3 class="quiz-question">AI 写的布尔代码偶尔崩溃，你想给 OCCT 官方提 issue。怎么抓现场？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>设环境变量 CSF_DEBUG_BOP，让它自动 dump 输入和复现脚本</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>截一段屏幕录像发过去</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>把整个项目源码打包发过去</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">再试一次</button>
+        </div>
+      </section>
+
+      <!-- Screen 6: 课程收尾 -->
+      <section class="screen animate-in" style="margin-top: var(--space-20); text-align:center;">
+        <span style="font-size: 3rem;">🎓</span>
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 700; margin: var(--space-4) 0;">课程完结，回顾全程</h2>
+        <p style="max-width: 600px; margin: 0 auto;">你已经走完了 OCCT 布尔运算的整条流水线——从一行代码，到看懂内核的每个部门：</p>
+        <div class="step-cards" style="display:flex; flex-direction:column; gap: var(--space-3); max-width: 640px; margin: var(--space-8) auto 0; text-align:left;">
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">1</div>
+            <div class="step-body">
+              <strong>四种操作，一台机器</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">Fuse/Common/Cut/Section 都是 General Fuse 的不同出口</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">2</div>
+            <div class="step-body">
+              <strong>四个角色</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">制片人 API · 摄影组 PaveFiller · 导演 BOP · 档案室 DS</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">3</div>
+            <div class="step-body">
+              <strong>两段流水线</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">交点部分（VV→…→FF 穿珍珠）+ 建造部分（填映像、按订单装盘）</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">4</div>
+            <div class="step-body">
+              <strong>一排推子</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">Fuzzy / Parallel / Non-Destructive / Glue —— 按「症状→药方」查表调参</p>
+            </div>
+          </div>
+        </div>
+        <h3 style="font-family: var(--font-display); font-size: var(--text-xl); font-weight:600; margin-top: var(--space-12);">下一步去哪儿</h3>
+        <div class="pattern-cards" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); margin-top: var(--space-4); text-align:left;">
+          <div class="pattern-card" style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm); border-top: 3px solid var(--color-actor-2);">
+            <h4 class="pattern-title" style="margin:0 0 var(--space-2);">📖 读原典</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">仓库里的 <code>dox/specification/boolean_operations</code>——本课程的官方蓝本，含全部数学细节。</p>
+          </div>
+          <div class="pattern-card" style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm); border-top: 3px solid var(--color-actor-4);">
+            <h4 class="pattern-title" style="margin:0 0 var(--space-2);">🧪 动手玩</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">用 <span class="term" data-definition="Draw：OCCT 自带的命令行测试台，可以敲命令直接建模、做布尔、看结果。源码在 src/Draw。">Draw</span> 测试台敲 <code>bfuzzyvalue / bfillds / bbop</code>，亲手复现每一章。</p>
+          </div>
+          <div class="pattern-card" style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm); border-top: 3px solid var(--color-actor-5);">
+            <h4 class="pattern-title" style="margin:0 0 var(--space-2);">🔬 看测试</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;"><code>src/ModelingAlgorithms/TKBO/GTests</code> 里的单元测试——每个都是一份可运行的最小示例。</p>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-12); font-size: var(--text-sm); color: var(--color-text-muted);">深入 OCCT 布尔运算 · 完 🎉</p>
+      </section>
+
+    </div>
+  </div>
+</section>
+<!-- Module 6 (番外篇): 相交计算的几何引擎 -->
+<section class="module" id="module-6" style="background: var(--color-bg)">
+  <div class="module-content">
+
+    <header class="module-header animate-in">
+      <span style="display:inline-block; font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.08em; color: var(--color-accent); background: var(--color-accent-light); border-radius: 999px; padding: 4px 14px; margin-bottom: var(--space-3);">番外篇 · 给好奇者的拆机报告</span>
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">06</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">相交计算的几何引擎</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">三条求交路线与夜路描缝</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 开场 + 三层委托链 -->
+      <section class="screen animate-in" style="margin-top: var(--space-10);">
+        <p style="font-size: var(--text-lg);">正课在上一章已经完结。但模块 3 留了一个没拆的盲盒：流水线压轴的 FF 站「算出交线、最贵」——可交线到底是<strong>怎么</strong>算出来的？一张圆柱面和一张汽车引擎盖那样的曲面相交，世界上根本没有现成公式。</p>
+        <p>这一章打开那台机器的外壳。先看清委托链——摄影组（PaveFiller）自己并不动手算几何，它层层外包：</p>
+        <div class="step-cards" style="display:flex; flex-direction:column; gap: var(--space-3); max-width: 640px; margin: var(--space-8) auto 0;">
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">1</div>
+            <div class="step-body">
+              <strong>摄影组的 FF 站（BOPAlgo_PaveFiller）</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">只负责调度：「3 号面和 7 号面，去查一下交在哪。」</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">2</div>
+            <div class="step-body">
+              <strong>测绘队队长（IntTools_FaceFace）</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">接单的承包商：备好两张面的资料，把测量结果整理成「交线」交回去。</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">3</div>
+            <div class="step-body">
+              <strong>几何引擎（IntPatch_Intersection）</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">真正下场测量的人。第一件事不是算，而是<strong>分诊</strong>：这单子走哪条路线？</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 2: 分诊台与三条路线 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">分诊台：先验明正身，再选路线</h2>
+        <p>测绘队把曲面分成两类。平面、圆柱、球、锥这类「正规几何」，交线有现成的数学公式，能写出<span class="term" data-definition="解析解：用公式直接算出的精确答案。比如两个平面的交线一定是一条直线，直线方程可以直接写出来——不用采样、不用逼近。">解析解</span>；而 <span class="term" data-definition="B 样条（B-Spline/NURBS）：用一组控制点定义的自由曲线/曲面，可以表达任意形状（车身、船体、鼠标外壳）。代价是：几乎没有现成的求交公式。">B 样条</span>这类<span class="term" data-definition="自由曲面：没有简单数学公式的曲面，形状由控制点网格决定。CAD 里的复杂外形几乎都是自由曲面。">自由曲面</span>没有公式，只能实地测量。验身的源码就这几行：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · IntPatch_Intersection.cxx</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// Surface type definition</span></span>
+<span class="code-line"><span class="code-keyword">int</span> ts1 = 0;</span>
+<span class="code-line"><span class="code-keyword">switch</span> (typs1)</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-keyword">case</span> GeomAbs_Plane:</span>
+<span class="code-line">  <span class="code-keyword">case</span> GeomAbs_Cylinder:</span>
+<span class="code-line">  <span class="code-keyword">case</span> GeomAbs_Sphere:</span>
+<span class="code-line">  <span class="code-keyword">case</span> GeomAbs_Cone:</span>
+<span class="code-line">    ts1 = 1;</span>
+<span class="code-line">    <span class="code-keyword">break</span>;</span>
+<span class="code-line">  <span class="code-keyword">case</span> GeomAbs_Torus:</span>
+<span class="code-line">    ts1 = bGeomGeom;</span>
+<span class="code-line">    <span class="code-keyword">break</span>;</span>
+<span class="code-line">  <span class="code-keyword">default</span>:</span>
+<span class="code-line">    <span class="code-keyword">break</span>;</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">给 1 号曲面验明正身。</p>
+              <p class="tl">先假设它是「自由曲面」（0 分）。</p>
+              <p class="tl">看看它登记的类型——</p>
+              <p class="tl">开始逐项核对：</p>
+              <p class="tl">平面？</p>
+              <p class="tl">圆柱面？</p>
+              <p class="tl">球面？</p>
+              <p class="tl">锥面？</p>
+              <p class="tl">以上四种都算「正规几何」，记 1 分。</p>
+              <p class="tl">核对完毕。</p>
+              <p class="tl">圆环面（甜甜圈）？特殊对待——</p>
+              <p class="tl">只有轴线对齐等好情况才算正规（bGeomGeom）。</p>
+              <p class="tl">否则按自由曲面处理。</p>
+              <p class="tl">其余一切（B 样条、拉伸面、偏移面…）</p>
+              <p class="tl">保持 0 分：没有公式，得实地测量。</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6);">两张面各打一次分，加起来就是路线图。源码注释原话："Possible intersection types: <strong>Geom-Geom</strong> / <strong>Geom-Param</strong> / <strong>Param-Param</strong>"：</p>
+        <div class="pattern-cards" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); margin-top: var(--space-4);">
+          <div class="pattern-card" style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm); border-top: 3px solid #2A7B9B;">
+            <h4 class="pattern-title" style="margin:0 0 var(--space-2);">📖 查公式（1+1）</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">两张都正规：翻开代数表直接抄答案。平面×平面=直线，平面×圆柱=椭圆……结果是<strong>精确曲线</strong>，又快又准。</p>
+          </div>
+          <div class="pattern-card" style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm); border-top: 3px solid #5A9DB8;">
+            <h4 class="pattern-title" style="margin:0 0 var(--space-2);">📐 半查半量（1+0）</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">一张正规一张自由：正规的那张提供方程当「路标」，自由的那张沿路采样。中等开销。</p>
+          </div>
+          <div class="pattern-card" style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm); border-top: 3px solid #1F6280;">
+            <h4 class="pattern-title" style="margin:0 0 var(--space-2);">🔦 夜路描缝（0+0）</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">两张都自由：没有任何公式可查，只能打着手电沿交缝<strong>一步步走出来</strong>。最贵的路线，下一节详拆。</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; margin-top: var(--space-12);">动手分诊：你来当队长</h2>
+        <p>给两张待求交的曲面各选一个类型，看看测绘队会派哪条路线：</p>
+        <div id="m6-dispatch" style="background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-md); padding: var(--space-8); margin: var(--space-6) 0;">
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-6);">
+            <div>
+              <p style="font-weight:600; margin:0 0 var(--space-3); font-family: var(--font-display);">曲面 A</p>
+              <div data-m6-group="a" style="display:flex; flex-wrap:wrap; gap: var(--space-2);">
+                <button class="m6-choice" data-kind="1" onclick="m6Pick('a','平面',this)">平面</button>
+                <button class="m6-choice" data-kind="1" onclick="m6Pick('a','圆柱',this)">圆柱</button>
+                <button class="m6-choice" data-kind="1" onclick="m6Pick('a','球面',this)">球面</button>
+                <button class="m6-choice" data-kind="0" onclick="m6Pick('a','自由曲面',this)">自由曲面</button>
+              </div>
+            </div>
+            <div>
+              <p style="font-weight:600; margin:0 0 var(--space-3); font-family: var(--font-display);">曲面 B</p>
+              <div data-m6-group="b" style="display:flex; flex-wrap:wrap; gap: var(--space-2);">
+                <button class="m6-choice" data-kind="1" onclick="m6Pick('b','平面',this)">平面</button>
+                <button class="m6-choice" data-kind="1" onclick="m6Pick('b','圆柱',this)">圆柱</button>
+                <button class="m6-choice" data-kind="1" onclick="m6Pick('b','球面',this)">球面</button>
+                <button class="m6-choice" data-kind="0" onclick="m6Pick('b','自由曲面',this)">自由曲面</button>
+              </div>
+            </div>
+          </div>
+          <div id="m6-route" style="margin-top: var(--space-6); padding: var(--space-5); border-radius: var(--radius-sm); background: var(--color-accent-light); font-size: var(--text-sm); line-height:1.7; color: var(--color-text-secondary);">👆 两边各选一个类型，分诊结果会出现在这里。</div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--color-text-muted);">* 圆环面（甜甜圈）是「看情况」选手：只有轴线对齐等特殊摆位才能走公式路线——就是上面代码里那个 <code>bGeomGeom</code>。</p>
+      </section>
+
+      <!-- Screen 3: 夜路描缝 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">夜路描缝：没有公式的地方，用脚走</h2>
+        <p>最贵的 Param-Param 路线，OCCT 的类名叫 <code>IntWalk_PWalking</code>——名字里就带着 walking。先看官方注释怎么自我介绍：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · IntWalk_PWalking.hxx</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">//! This class implements an algorithm to determine the</span></span>
+<span class="code-line"><span class="code-comment">//! intersection between 2 parametrized surfaces, marching from</span></span>
+<span class="code-line"><span class="code-comment">//! a starting point. The intersection line</span></span>
+<span class="code-line"><span class="code-comment">//! starts and ends on the natural surface's boundaries.</span></span>
+<span class="code-line"><span class="code-keyword">class</span> <span class="code-function">IntWalk_PWalking</span></span>
+<span class="code-line">{</span>
+<span class="code-line"><span class="code-keyword">public</span>:</span>
+<span class="code-line">  DEFINE_STANDARD_ALLOC</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-comment">//! Constructor used to set the data to compute intersection</span></span>
+<span class="code-line">  <span class="code-comment">//! lines between Caro1 and Caro2.</span></span>
+<span class="code-line">  <span class="code-comment">//! Deflection is the maximum deflection admitted between two</span></span>
+<span class="code-line">  <span class="code-comment">//! consecutive points on the resulting polyline.</span></span>
+<span class="code-line">  <span class="code-comment">//! TolTangency is the tolerance to find a tangent point.</span></span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">这个类负责求两张「参数化曲面」的交线，</p>
+              <p class="tl">方法是：从一个起点出发，行进（marching）。</p>
+              <p class="tl">走出来的交线</p>
+              <p class="tl">起止于曲面的自然边界（走到边就停）。</p>
+              <p class="tl">类名直译：「点行走」。</p>
+              <p class="tl">类定义开始。</p>
+              <p class="tl">公开接口。</p>
+              <p class="tl">内存分配样板代码（可忽略）。</p>
+              <p class="tl"></p>
+              <p class="tl">构造函数：登记这单测量任务的资料——</p>
+              <p class="tl">两张待求交的曲面 Caro1、Caro2。</p>
+              <p class="tl">Deflection（允许偏差）= 步子最大能迈多大：</p>
+              <p class="tl">相邻两颗「图钉」之间允许偏离真实曲线多远。</p>
+              <p class="tl">TolTangency = 判定「切着碰」的容差。</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-8);">把它画出来就是这张图——两张纸面的交缝处，测绘队边走边钉图钉，最后用一根丝线把图钉串成光滑曲线：</p>
+        <figure style="margin: var(--space-8) 0;">
+          <img src="images/seam-survey.png" alt="夜路描缝隐喻：两张交叠纸面的交缝处钉着一排图钉，青色丝线穿过图钉形成光滑曲线" style="width:100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); display:block;">
+          <figcaption style="text-align:center; font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-3);">图钉 = 行走法的采样点（折线 WLine），丝线 = 拟合出的 B 样条交线</figcaption>
+        </figure>
+        <p>走完一遍，手里得到的是一串离散的图钉——源码里叫 <span class="term" data-definition="WLine（Walking Line）：行走法的直接产物，一条由离散采样点组成的折线。它还不是光滑曲线，只是交线的「素描稿」。">WLine 折线</span>。但布尔运算的档案室要的是一条真正的曲线，所以最后一步是<span class="term" data-definition="拟合（approximation）：用一条光滑的 B 样条曲线尽量贴近一串离散点。拟合永远有误差——曲线不会恰好穿过每个点，只保证偏差小于给定阈值。">拟合</span>：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · IntTools_FaceFace.cxx</span>
+            <pre><code>
+<span class="code-line">occ::handle&lt;Geom_Curve&gt; aBSp = GeomInt_IntSS::<span class="code-function">MakeBSpline</span>(WL, ifprm, ilprm);</span>
+<span class="code-line"><span class="code-comment">//</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myApprox1)</span>
+<span class="code-line">{</span>
+<span class="code-line">  H1 = GeomInt_IntSS::<span class="code-function">MakeBSpline2d</span>(WL, ifprm, ilprm, <span class="code-keyword">true</span>);</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-comment">//</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myApprox2)</span>
+<span class="code-line">{</span>
+<span class="code-line">  H2 = GeomInt_IntSS::<span class="code-function">MakeBSpline2d</span>(WL, ifprm, ilprm, <span class="code-keyword">false</span>);</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-comment">//</span></span>
+<span class="code-line">IntTools_Curve <span class="code-function">aIC</span>(aBSp, H1, H2);</span>
+<span class="code-line">mySeqOfCurve.<span class="code-function">Append</span>(aIC);</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">把图钉串 WL 拟合成一条光滑的 3D B 样条曲线。</p>
+              <p class="tl"></p>
+              <p class="tl">如果客户还要 1 号面上的「影子版」——</p>
+              <p class="tl"></p>
+              <p class="tl">在 1 号面的参数地图上再画一条 2D 曲线（pcurve）。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">2 号面同理——</p>
+              <p class="tl"></p>
+              <p class="tl">也画一条 2D 影子。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">3D 曲线 + 两张 2D 影子，打包成一条「交线」。</p>
+              <p class="tl">归档，交给摄影组继续穿珍珠。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！交线不是「算出来的」，是「量出来+描出来的」</strong>
+            <p>查公式路线给的是精确曲线；但走夜路得到的交线是<strong>测量 + 拟合的产物</strong>，天生带误差。OCCT 不藏着掖着：<code>ComputeTolReached3d</code> 会把「3D 曲线和两张面之间的实际最大偏差」量出来，作为这条交线的<span class="term" data-definition="容差（tolerance）：形状自带的「误差半径」。交线的容差 = 拟合后实测的最大偏差——比输入面的容差大是正常现象。">容差</span>写进档案。所以布尔结果里新边的容差常常比输入大——这不是 bug，是一份诚实的测量报告。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: 全流程动画 + 器材间 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">一张订单的全流程，点一遍</h2>
+        <p>把整章串起来：FF 站派一张「3 号面 × 7 号面」的订单下来，测绘队从接单到交付：</p>
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-m6-1","label":"接单：IntTools_FaceFace 备齐两张面的资料（几何、边界、容差）"},
+          {"highlight":"flow-actor-m6-2","label":"分诊：IntPatch 给两张面验明正身 —— 正规几何还是自由曲面？","packet":true,"from":"actor-m6-1","to":"actor-m6-2"},
+          {"highlight":"flow-actor-m6-3","label":"路线一·查公式：双正规直接抄解析解，得到直线/圆/椭圆等精确曲线","packet":true,"from":"actor-m6-2","to":"actor-m6-3"},
+          {"highlight":"flow-actor-m6-4","label":"路线三·夜路描缝：找到起点后沿交缝行走，每步钉一颗图钉（受 Deflection 限步）","packet":true,"from":"actor-m6-2","to":"actor-m6-4"},
+          {"highlight":"flow-actor-m6-5","label":"拟合：把图钉折线 WLine 连成光滑 B 样条，再给两张面各画一条 2D 影子（pcurve）","packet":true,"from":"actor-m6-4","to":"actor-m6-5"},
+          {"highlight":"flow-actor-m6-6","label":"交付：实测拟合误差写进容差（ComputeTolReached3d），交线归档 —— 摄影组接着穿珍珠","packet":true,"from":"actor-m6-5","to":"actor-m6-6"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-m6-1">
+              <div class="flow-actor-icon">📋</div>
+              <span>接单</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m6-2">
+              <div class="flow-actor-icon">🩺</div>
+              <span>分诊</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m6-3">
+              <div class="flow-actor-icon">📖</div>
+              <span>查公式</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m6-4">
+              <div class="flow-actor-icon">🔦</div>
+              <span>走夜路</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m6-5">
+              <div class="flow-actor-icon">🪡</div>
+              <span>拟合</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m6-6">
+              <div class="flow-actor-icon">📦</div>
+              <span>交付</span>
+            </div>
+          </div>
+          <div class="flow-packet"></div>
+          <div class="flow-step-label">点「下一步」走一遍测绘流程</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">下一步</button>
+            <button class="btn flow-reset-btn">重来</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; margin-top: var(--space-12);">器材间：贵的仪器只造一次</h2>
+        <p>测量途中要反复用到两件贵重仪器：<span class="term" data-definition="投影器（projector）：把一个 3D 点「垂直投」到曲面/曲线上，找出最近的落点。构建一次很贵，但建好后可以反复使用。">投影器</span>（这个点投到面上落在哪？）和<span class="term" data-definition="分类器（classifier）：判断一个点相对形状的位置——在里面、在外面、还是恰好在边界上。">分类器</span>（这个点在面的范围内吗？）。为整场布尔运算服务的「器材间」就是 <code>IntTools_Context</code>：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · IntTools_Context.hxx</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">//! The intersection Context contains geometrical</span></span>
+<span class="code-line"><span class="code-comment">//! and topological toolkit (classifiers, projectors, etc).</span></span>
+<span class="code-line"><span class="code-comment">//! The intersection Context is for caching the tools</span></span>
+<span class="code-line"><span class="code-comment">//! to increase the performance.</span></span>
+<span class="code-line"><span class="code-keyword">class</span> <span class="code-function">IntTools_Context</span> : <span class="code-keyword">public</span> Standard_Transient</span>
+<span class="code-line">{</span>
+<span class="code-line"><span class="code-keyword">public</span>:</span>
+<span class="code-line">  <span class="code-comment">//! Returns a reference to point classifier</span></span>
+<span class="code-line">  <span class="code-comment">//! for given face</span></span>
+<span class="code-line">  Standard_EXPORT IntTools_FClass2d&amp; <span class="code-function">FClass2d</span>(<span class="code-keyword">const</span> TopoDS_Face&amp; aF);</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-comment">//! Returns a reference to point projector</span></span>
+<span class="code-line">  <span class="code-comment">//! for given face</span></span>
+<span class="code-line">  Standard_EXPORT GeomAPI_ProjectPointOnSurf&amp; <span class="code-function">ProjPS</span>(<span class="code-keyword">const</span> TopoDS_Face&amp; aF);</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">官方注释：Context 装着几何/拓扑工具箱</p>
+              <p class="tl">（分类器、投影器等等）。</p>
+              <p class="tl">存在的意义只有一个：把工具缓存起来，</p>
+              <p class="tl">提高性能。</p>
+              <p class="tl">类定义开始。</p>
+              <p class="tl"></p>
+              <p class="tl">公开接口。</p>
+              <p class="tl">「给我 3 号面的点分类器」——</p>
+              <p class="tl">没有就现造一台，造完留在架子上；</p>
+              <p class="tl">下次再要，直接从架子上拿。</p>
+              <p class="tl"></p>
+              <p class="tl">「给我 3 号面的投影器」——</p>
+              <p class="tl">同样的租赁规则。</p>
+              <p class="tl">每张面一台，全场共用。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-info" style="margin-top: var(--space-8);">
+          <div class="callout-icon">🔧</div>
+          <div class="callout-content">
+            <strong class="callout-title">器材间的租赁规则</strong>
+            <p>整场布尔运算从头到尾只有<strong>一间</strong>器材间——摄影组开工时建好，传给每个外包队。仪器按「哪张面/哪条边」登记：第一次借要现造（贵），之后人人都直接取用（免费）。几十万次「点在不在面里」的查询，就是这样才跑得动的。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 5: Quiz + 番外收尾 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">测绘队入队考核</h2>
+        <div class="quiz-container" id="quiz-module6">
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="对！两张自由曲面都是 0 分，0+0 走 Param-Param——没有公式可查，只能行走采样，再把折线拟合成 B 样条。"
+               data-explanation-wrong="先给两张面打分：引擎盖是典型的自由曲面（B 样条），有公式吗？两个 0 分加起来走哪条路线？">
+            <h3 class="quiz-question">两张汽车引擎盖那样的自由曲面求交，测绘队走哪条路线？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>查公式（Geom-Geom）——所有曲面都有解析解</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>半查半量（Geom-Param）——总有一边能提供方程</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>夜路描缝（Param-Param）——从起点行走采样，折线再拟合</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="正确！平面/圆柱是正规几何，全程查公式：交线直接是精确的直线和椭圆，免行走、免拟合、误差更小。能用正规几何建模就别转 NURBS——布尔又快又稳。"
+               data-explanation-wrong="想想分诊台的打分表：平面和圆柱得几分？NURBS 得几分？哪条路线不用行走也不用拟合？">
+            <h3 class="quiz-question">同一个法兰零件，用「平面+圆柱」建模，或整体转成 NURBS 自由曲面再做布尔。哪个更快更稳？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>平面+圆柱版——双正规走查公式路线，免行走免拟合</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>NURBS 版——自由曲面更「高级」，算法会优先优化</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>完全一样——形状相同，路线就相同</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="对！走夜路的交线是测量+拟合的产物，ComputeTolReached3d 把实测最大偏差如实写进容差。这是诚实的误差报告，不是故障。"
+               data-explanation-wrong="回想 aha 框：哪条路线的交线天生带拟合误差？OCCT 对这个误差的态度是隐瞒还是如实记录？">
+            <h3 class="quiz-question">布尔结果中，交线处新边的容差比两张输入面都大。最可能的来源是？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>内存不足导致计算被截断</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>行走+拟合的逼近误差被实测后如实写入——正常现象</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>一定是建模软件导出时损坏了文件</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module6')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module6')">再试一次</button>
+        </div>
+
+        <div class="callout callout-accent" style="margin-top: var(--space-12);">
+          <div class="callout-icon">📷</div>
+          <div class="callout-content">
+            <strong class="callout-title">番外完 · 亲手按一次快门</strong>
+            <p>在 <span class="term" data-definition="Draw：OCCT 自带的命令行测试台，可以敲命令直接建模、做布尔、看结果。源码在 src/Draw。">Draw</span> 测试台里敲 <code>bopcurves f1 f2 -2d</code>，就能直接看到两张面的交线——这正是本章测绘队的独立出口。回头再看模块 5：Fuzzy Value 调的，其实就是这台几何引擎的判定松紧。机器拆完了，盲盒没有了。🎉</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      window.m6Pick = function (group, name, btn) {
+        var box = document.getElementById('m6-dispatch');
+        if (!box) return;
+        var btns = box.querySelectorAll('[data-m6-group="' + group + '"] .m6-choice');
+        Array.prototype.forEach.call(btns, function (b) { b.classList.remove('m6-selected'); });
+        btn.classList.add('m6-selected');
+        box.setAttribute('data-sel-' + group, btn.getAttribute('data-kind'));
+        box.setAttribute('data-name-' + group, name);
+        var a = box.getAttribute('data-sel-a');
+        var b2 = box.getAttribute('data-sel-b');
+        var route = document.getElementById('m6-route');
+        if (a === null || b2 === null || !route) return;
+        var na = box.getAttribute('data-name-a');
+        var nb = box.getAttribute('data-name-b');
+        var sum = parseInt(a, 10) + parseInt(b2, 10);
+        var html = '<strong style="color: var(--color-text);">' + na + ' × ' + nb + '</strong> → ';
+        if (sum === 2) {
+          html += '<strong style="color:#2A7B9B;">📖 查公式（Geom-Geom）</strong><br>两张都是正规几何，直接抄解析解。结果是直线/圆/椭圆等精确曲线。成本：<strong>▮▯▯ 快</strong>，误差最小。';
+        } else if (sum === 1) {
+          html += '<strong style="color:#5A9DB8;">📐 半查半量（Geom-Param）</strong><br>正规的一张出方程当路标，自由的一张沿路采样。成本：<strong>▮▮▯ 中</strong>。';
+        } else {
+          html += '<strong style="color:#1F6280;">🔦 夜路描缝（Param-Param）</strong><br>无公式可查：找起点 → 沿缝行走钉图钉 → 折线拟合成 B 样条 → 实测误差写入容差。成本：<strong>▮▮▮ 贵</strong>。';
+        }
+        route.innerHTML = html;
+      };
+    })();
+  </script>
+  <style>
+    #m6-dispatch .m6-choice {
+      font-family: var(--font-body, inherit);
+      font-size: var(--text-sm);
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: 1px solid var(--color-border);
+      background: var(--color-bg);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 150ms;
+    }
+    #m6-dispatch .m6-choice:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+    #m6-dispatch .m6-choice.m6-selected {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: #fff;
+      font-weight: 600;
+    }
+  </style>
+</section>
+<!-- Module 7 (番外篇 II): 实战判例篇 -->
+<section class="module" id="module-7" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+
+    <header class="module-header animate-in">
+      <span style="display:inline-block; font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.08em; color: var(--color-accent); background: var(--color-accent-light); border-radius: 999px; padding: 4px 14px; margin-bottom: var(--space-3);">番外篇 II · 真实事故档案</span>
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">07</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">实战判例篇</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">卷宗室里的相交事故</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 开场 + 卷宗室编目 -->
+      <section class="screen animate-in" style="margin-top: var(--space-10);">
+        <p style="font-size: var(--text-lg);">模块 6 拆完了机器。但这台机器在真实世界里翻过哪些车？圆锥碰球<strong>丢过交点</strong>，圆柱碰平面<strong>多算过交线</strong>……</p>
+        <p>OCCT 二十多年攒下的每一桩事故都没有被扔掉，而是写成「判例」永久归档在仓库的 <code>tests/</code> 目录里：出过的 bug → 最小复现脚本 → 每晚被 <span class="term" data-definition="CI（持续集成）：每次代码变动后自动跑全部测试的机器人。OCCT 的判例库就由它每晚复审。">CI</span> 复审一遍 → 同样的事故永不二犯。这套档案的编目方式：</p>
+        <div class="step-cards" style="display:flex; flex-direction:column; gap: var(--space-3); max-width: 640px; margin: var(--space-8) auto 0;">
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">组</div>
+            <div class="step-body">
+              <strong>tests/&lt;group&gt;</strong> —— 按科室分类
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);"><code>boolean</code> 布尔事故科，<code>lowalgos/intss</code> 曲面求交事故科……</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">卷</div>
+            <div class="step-body">
+              <strong>&lt;grid&gt;</strong> —— 同类案件合订本
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);"><code>bopfuse_simple</code>（简单 Fuse 卷）…每卷配公共工具 <code>begin</code> 和判读规则 <code>parse.rules</code>。</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">案</div>
+            <div class="step-body">
+              <strong>&lt;case&gt;</strong> —— 单个判例
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);"><code>bug21494_1</code>：一份几十行的<span class="term" data-definition="最小复现（minimal reproduction）：把一个 bug 削减到能触发问题的最少步骤。判例的灵魂——越小越容易诊断、越不容易误报。">最小复现</span>脚本，就是一桩案子的全部卷宗。</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-8);">读判例是理解相交算法最快的路。下面开三个抽屉，看三桩真实案件。</p>
+      </section>
+
+      <!-- Screen 2: 卷宗检索台 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">卷宗检索台：点开看案情</h2>
+        <div id="m7-cabinet" style="background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-md); padding: var(--space-8); margin: var(--space-6) 0;">
+          <div style="display:flex; flex-wrap:wrap; gap: var(--space-2);">
+            <button class="m7-drawer" onclick="m7Open(0, this)">🗂 案例一 · 锥球点交</button>
+            <button class="m7-drawer" onclick="m7Open(1, this)">🗂 案例二 · 圆外圆柱</button>
+            <button class="m7-drawer" onclick="m7Open(2, this)">🗂 案例三 · 外部物证</button>
+          </div>
+          <div id="m7-file" style="margin-top: var(--space-6); padding: var(--space-5); border-radius: var(--radius-sm); background: var(--color-accent-light); font-size: var(--text-sm); line-height:1.8; color: var(--color-text-secondary);">👆 点一个抽屉，案情卡会出现在这里。</div>
+        </div>
+      </section>
+
+      <!-- Screen 3: 案例一 锥球点交 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">案例一：锥碰球，交点不能丢</h2>
+        <p>案由 OCC21494「锥球相交失败」。判例原文（<code style="font-size: var(--text-xs);">tests/lowalgos/intss/bug21494_1</code>）——注意它的现场是<strong>当场搭建</strong>的，两行命令造形，零外部依赖：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · Draw/Tcl 判例</span>
+            <pre><code>
+<span class="code-line"><span class="code-function">pcone</span> bc 15 0 10</span>
+<span class="code-line"><span class="code-function">psphere</span> bs 10</span>
+<span class="code-line"><span class="code-function">explode</span> bc f</span>
+<span class="code-line"><span class="code-function">explode</span> bs f</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">set</span> log [<span class="code-function">bopcurves</span> bc_1 bs_1 -2d]</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-function">regexp</span> {Tolerance Reached=+([-0-9.+eE]+)\n+([-0-9.+eE]+)} $log full Toler NbCurv</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">if</span> { ![<span class="code-function">regexp</span> {1 point\(s\) found} $log full] } {</span>
+<span class="code-line">  <span class="code-function">puts</span> <span class="code-comment">"Error: Cone apex and Pole of sphere are excluded..."</span></span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-keyword">if</span> {$NbCurv != 1} {</span>
+<span class="code-line">  <span class="code-function">puts</span> <span class="code-comment">"Error: Please check NbCurves for intersector"</span></span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-keyword">if</span> { $Toler &gt; 2.0e-7} {</span>
+<span class="code-line">  <span class="code-function">puts</span> <span class="code-comment">"Error: Big tolerance value"</span></span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">现场搭建：造一个底半径 15、收尖到 0、高 10 的圆锥。</p>
+              <p class="tl">再造一个半径 10 的球。</p>
+              <p class="tl">把圆锥拆出面（bc_1 = 锥面）。</p>
+              <p class="tl">把球拆出面（bs_1 = 球面）。</p>
+              <p class="tl"></p>
+              <p class="tl">按快门！bopcurves 求两面交线，测量报告存进 log。</p>
+              <p class="tl"></p>
+              <p class="tl">用正则从报告里抠出两个数：实测容差 + 交线数。</p>
+              <p class="tl"></p>
+              <p class="tl">验收第 1 条：报告里必须有「找到 1 个交点」——</p>
+              <p class="tl">锥顶恰好戳在球上，那是一个孤立交点，丢了就是事故。</p>
+              <p class="tl"></p>
+              <p class="tl">验收第 2 条：交线必须恰好 1 条，</p>
+              <p class="tl">多一条少一条都报错。</p>
+              <p class="tl"></p>
+              <p class="tl">验收第 3 条：实测容差不得超过 2×10⁻⁷，</p>
+              <p class="tl">误差太大也算翻车。</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">📌</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！相交的结果有两种，不是一种</strong>
+            <p>交线（curves）之外还有<span class="term" data-definition="孤立交点（intersection point）：两张面只在一个点上接触时的产物——比如锥顶戳在球面上。它不属于任何交线，单独记账。">孤立交点</span>（points）。锥顶碰球极是「点接触」，产出的不是曲线而是一个点。这桩案子立案的原因，就是当年交点被悄悄弄丢了。所以 <code>bopcurves</code> 的报告里「N point(s) found」和曲线数是分开列的——验收时两样都要数。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: 案例二 圆外圆柱 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">案例二：数学说相交，边界说不行</h2>
+        <p>这桩是 C++ 判例（<code style="font-size: var(--text-xs);">GTests/IntTools_FaceFace_Test.cxx</code>），用 <span class="term" data-definition="GTest（GoogleTest）：C++ 单元测试框架。OCCT 用它写不需要 Draw 环境的细粒度判例，直接调 C++ 类。">GTest</span> 直接调用模块 6 拆过的 <code>IntTools_FaceFace</code>。先看现场布置——一张圆形平面（半径 10），一个站在 X=20 处的半圆柱：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · GTest 判例</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// Half cylinder with axis along Y, positioned far from plane center</span></span>
+<span class="code-line"><span class="code-comment">// The cylinder is at X=20, which is outside the plane's circular boundary (radius 10)</span></span>
+<span class="code-line"><span class="code-keyword">const</span> gp_Pnt <span class="code-function">aCylCenter</span>(20.0, 0.0, 0.0);</span>
+<span class="code-line"><span class="code-keyword">const</span> gp_Dir <span class="code-function">aCylAxis</span>(0.0, 1.0, 0.0);</span>
+<span class="code-line"><span class="code-keyword">const</span> <span class="code-keyword">double</span> aCylRadius = 2.0;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">官方注释直接写明案情：半圆柱沿 Y 轴立着，</p>
+              <p class="tl">站位 X=20——而平面的圆形边界半径只有 10。圆外！</p>
+              <p class="tl">圆柱轴心点：(20, 0, 0)。</p>
+              <p class="tl">轴向：竖直向上。</p>
+              <p class="tl">半径 2。现场全部用代码搭建，毫米不差。</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6);">无限大的平面和这根圆柱在数学上<strong>必然相交</strong>。但判决是——</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · 判决书</span>
+            <pre><code>
+<span class="code-line"><span class="code-function">EXPECT_EQ</span>(aNbCurves, 0) &lt;&lt; <span class="code-comment">"Expected no intersection curves, but found "</span> &lt;&lt; aNbCurves</span>
+<span class="code-line">                        &lt;&lt; <span class="code-comment">". The cylinder at X=20 is outside the circular plane (radius 10)."</span>;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">交线数必须等于 0。一条都不许有——</p>
+              <p class="tl">因为圆柱站在这张面的圆形边界之外。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">✂️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！曲面相交 ≠ 面相交</strong>
+            <p>面（face）= 曲面（surface）+ <span class="term" data-definition="边界（wire 裁剪）：面不是整张无限曲面，而是被一圈线框（wire）裁出来的有效区域——像用剪刀从大纸上剪下的一块形状。">边界裁剪</span>。引擎先算两张<em>曲面</em>的交线，再用各自的边界把交线裁到有效区域内。这一步曾经验证不严、多报过交线——于是有了这桩判例站岗。下次看到「明明该相交却返回空」，先想想：是不是落在边界之外？</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 5: 案例三 + 现场重建三法 + 游标卡尺 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">案发现场是怎么重建的？</h2>
+        <p>简单形状当场搭建。但真实工业模型（管道、叶轮）没法用两行命令造出来——这时用第二种手法，<strong>物证封存</strong>。看案例三（<code style="font-size: var(--text-xs);">tests/lowalgos/intss/bug29807_i1003</code>「无法从棱柱上切掉圆锥」）：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · 物证调取</span>
+            <pre><code>
+<span class="code-line"><span class="code-function">restore</span> [<span class="code-function">locate_data_file</span> bug29807-obj.brep] b1</span>
+<span class="code-line"><span class="code-function">restore</span> [<span class="code-function">locate_data_file</span> bug29807-tool.brep] b2</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-function">trotate</span> b2 +23.85857157145715500000 +12.00000000000000000000 +5.50000000000000000000 7 -7.14142842854285 0 -5</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">从证物库调取主件，存为 b1。locate_data_file 沿环境变量</p>
+              <p class="tl">CSF_TestDataPath 列出的目录搜索这份 .brep 物证。</p>
+              <p class="tl"></p>
+              <p class="tl">把工具件旋转到精确的案发角度——注意那串 20 位小数：</p>
+              <p class="tl">案发姿态差一丝一毫，事故就复现不出来。</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6);">最后认识每卷判例共用的「游标卡尺」（定义在 <code style="font-size: var(--text-xs);">tests/lowalgos/intss/begin</code>）——它回答一个根本问题：<strong>怎么证明一条曲线真的是交线？</strong></p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · 公共卡尺</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">proc</span> <span class="code-function">CheckIntersectionResult</span> {theSurf1 theSurf2 theListOfCurves theNbPoints theTolerS1 theTolerS2} {</span>
+<span class="code-line">  <span class="code-function">upvar</span> #0 $theSurf1 s1</span>
+<span class="code-line">  <span class="code-function">upvar</span> #0 $theSurf2 s2</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">foreach</span> a $theListOfCurves {</span>
+<span class="code-line">    <span class="code-function">bounds</span> aCurve U1 U2</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">if</span> {[<span class="code-function">dval</span> U2-U1] &lt; 1.0e-9} {</span>
+<span class="code-line">      <span class="code-function">puts</span> <span class="code-comment">"Error: Wrong range of $a"</span></span>
+<span class="code-line">    }</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-function">xdistcs</span> aCurve s1 U1 U2 $theNbPoints $theTolerS1</span>
+<span class="code-line">    <span class="code-function">xdistcs</span> aCurve s2 U1 U2 $theNbPoints $theTolerS2</span>
+<span class="code-line">  }</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">这把卡尺收 6 样东西：两张曲面、一串待验曲线、</p>
+              <p class="tl">抽样点数、对两张面各自的容差要求。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">对每条待验的「疑似交线」：</p>
+              <p class="tl">量出它的参数范围。</p>
+              <p class="tl"></p>
+              <p class="tl">范围小于 10⁻⁹？那它退化成一个点了——</p>
+              <p class="tl">不合格。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">关键两下：沿曲线抽 N 个样本点，实测每个点到 1 号面的距离；</p>
+              <p class="tl">再实测到 2 号面的距离。交线必须同时贴着两张面——</p>
+              <p class="tl">差一张，都不算交线。</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-info" style="margin-top: var(--space-8);">
+          <div class="callout-icon">🗃️</div>
+          <div class="callout-content">
+            <strong class="callout-title">现场重建三法，对号入座</strong>
+            <p>① <strong>现场搭建</strong>——box/pcone/psphere 当场造形，零依赖（案例一）；② <strong>物证封存</strong>——复杂形状存 .brep，restore 调取（案例三）；③ <strong>搭建+摆位</strong>——调取后再 trotate/explode 摆出案发姿态（案例三的第二步）。你给 AI 或同事报 bug 时，也按这三法构造最小复现——这是判例文化教给每个工程师的本事。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 6: bug 生命周期动画 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">一桩 bug 的一生，点一遍</h2>
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-m7-1","label":"报案：用户发现锥球相交丢了交点（OCC21494）"},
+          {"highlight":"flow-actor-m7-2","label":"重建现场：削成最小复现 —— pcone + psphere 两行造形","packet":true,"from":"actor-m7-1","to":"actor-m7-2"},
+          {"highlight":"flow-actor-m7-3","label":"修案：修复算法，bopcurves 报告 1 条交线 + 1 个交点，容差合格","packet":true,"from":"actor-m7-2","to":"actor-m7-3"},
+          {"highlight":"flow-actor-m7-4","label":"入档：复现脚本写进 tests/lowalgos/intss/bug21494_1，永久归档","packet":true,"from":"actor-m7-3","to":"actor-m7-4"},
+          {"highlight":"flow-actor-m7-5","label":"复审：CI 每晚把全部判例重跑一遍 —— 几千桩旧案夜夜过堂","packet":true,"from":"actor-m7-4","to":"actor-m7-5"},
+          {"highlight":"flow-actor-m7-6","label":"报警：未来任何改动若让旧判例翻案，第二天清晨即被揪出 —— 永不二犯","packet":true,"from":"actor-m7-5","to":"actor-m7-6"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-m7-1">
+              <div class="flow-actor-icon">🚨</div>
+              <span>报案</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m7-2">
+              <div class="flow-actor-icon">🔍</div>
+              <span>重建现场</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m7-3">
+              <div class="flow-actor-icon">🔧</div>
+              <span>修案</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m7-4">
+              <div class="flow-actor-icon">🗂</div>
+              <span>入档</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m7-5">
+              <div class="flow-actor-icon">🌙</div>
+              <span>夜审</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m7-6">
+              <div class="flow-actor-icon">🔔</div>
+              <span>报警</span>
+            </div>
+          </div>
+          <div class="flow-packet"></div>
+          <div class="flow-step-label">点「下一步」走完一桩案子</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">下一步</button>
+            <button class="btn flow-reset-btn">重来</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 7: Quiz + 收尾 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">判例研习考核</h2>
+        <div class="quiz-container" id="quiz-module7">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="对！修复只是上半场；下半场是把最小复现写成判例入档 tests/，CI 每晚复审。没有判例的修复，五年后大概率被某次重构悄悄弄丢。"
+               data-explanation-wrong="想想流程动画的后三站：修完之后还做了什么，才让这桩事故「永不二犯」？">
+            <h3 class="quiz-question">你修好了一个面面求交的 bug。怎么保证它五年后不悄悄复发？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>在代码里多写几行注释，提醒后人别改坏</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>把最小复现写成判例入档 tests/，让 CI 每晚复审</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>把相关代码锁起来禁止任何人修改</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="对！判例的验收从来不止一项：曲线数对不对、容差有没有超标、（如有）孤立交点在不在——案例一就是三连查。只断言一项，另一项坏了你根本不知道。"
+               data-explanation-wrong="回看案例一的三个 if：它检查了几样东西？少查一样会怎样？">
+            <h3 class="quiz-question">bopcurves 输出「Tolerance Reached=3e-5」和「2 curve(s) found」。写判例时该断言什么？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>只断言交线数等于 2——曲线对了就行</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>只断言容差不超标——精度才是生命线</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>曲线数和容差都要断言，缺一不可</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="正确！面 = 曲面 + 边界裁剪。无限曲面相交，但交线全部落在面的有效区域之外时，正确答案就是 0 条——案例二的判例守的就是这条线。"
+               data-explanation-wrong="回想案例二：无限平面和圆柱明明相交，为什么判决书要求 0 条交线？圆柱站在哪里？">
+            <h3 class="quiz-question">无限平面与圆柱在数学上必然相交，但 IntTools_FaceFace 返回 0 条交线。什么情况下这是<strong>正确</strong>答案？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>圆柱落在那张面的边界裁剪区域之外——曲面相交但面不相交</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>不存在这种情况，返回 0 一定是 bug</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>只要把容差调大，总能交出曲线来</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module7')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module7')">再试一次</button>
+        </div>
+
+        <div class="callout callout-accent" style="margin-top: var(--space-12);">
+          <div class="callout-icon">⚖️</div>
+          <div class="callout-content">
+            <strong class="callout-title">番外 II 完 · 写一桩你自己的判例</strong>
+            <p>在 <span class="term" data-definition="Draw：OCCT 自带的命令行测试台，可以敲命令直接建模、做布尔、看结果。源码在 src/Draw。">Draw</span> 里只要五行：造两个形（<code>box</code>/<code>pcone</code>），<code>explode</code> 拆面，<code>bopcurves</code> 按快门，再用 <code>regexp</code> 给报告立验收标准。恭喜——你已经看得懂卷宗室里的每一份档案，也有资格往里面添一份了。🎉</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var M7_CASES = [
+        {
+          title: '案例一 · 锥球点交（OCC21494）',
+          how: '现场搭建：pcone + psphere 两行命令程序化造形，零外部依赖。',
+          accept: '验收三连：交线恰好 1 条；锥顶/球极的孤立交点必须在场；实测容差 ≤ 2e-7。',
+          verdict: '判决要点：相交结果 = 交线 + 交点两本账，点接触产出的是孤立交点，丢失即事故。'
+        },
+        {
+          title: '案例二 · 圆外圆柱（GTest · IntTools_FaceFace_Test）',
+          how: '现场搭建（C++ 版）：Geom_Plane / Geom_CylindricalSurface + BRepBuilderAPI_MakeFace 精确造面。',
+          accept: '验收：EXPECT_EQ(aNbCurves, 0) —— 一条交线都不许有。',
+          verdict: '判决要点：面 = 曲面 + 边界裁剪。无限曲面相交 ≠ 有界面相交，边界验证曾出过多报交线的事故。'
+        },
+        {
+          title: '案例三 · 外部物证（bug29807）',
+          how: '物证封存 + 摆位：restore [locate_data_file *.brep] 从 CSF_TestDataPath 证物库调取，再 trotate 用 20 位小数摆出案发姿态。',
+          accept: '验收：交线恰好 2 条；实测容差 ≤ 5.1e-5（复杂工业面，标准比解析面宽）。',
+          verdict: '判决要点：复杂现场靠封存物证复现；姿态精度是复现成败的生命线。'
+        }
+      ];
+      window.m7Open = function (idx, btn) {
+        var box = document.getElementById('m7-cabinet');
+        if (!box) return;
+        var btns = box.querySelectorAll('.m7-drawer');
+        Array.prototype.forEach.call(btns, function (b) { b.classList.remove('m7-open'); });
+        btn.classList.add('m7-open');
+        var c = M7_CASES[idx];
+        document.getElementById('m7-file').innerHTML =
+          '<strong style="color: var(--color-text);">' + c.title + '</strong><br>' +
+          '🔍 <strong>现场重建：</strong>' + c.how + '<br>' +
+          '📏 <strong>验收标准：</strong>' + c.accept + '<br>' +
+          '⚖️ <strong>' + c.verdict.replace('：', '：</strong>');
+      };
+    })();
+  </script>
+  <style>
+    #m7-cabinet .m7-drawer {
+      font-family: var(--font-body, inherit);
+      font-size: var(--text-sm);
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+      background: var(--color-bg);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 150ms;
+    }
+    #m7-cabinet .m7-drawer:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+      transform: translateY(-1px);
+    }
+    #m7-cabinet .m7-drawer.m7-open {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: #fff;
+      font-weight: 600;
+    }
+  </style>
+</section>
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,441 @@
+<!-- Module 7 (番外篇 II): 实战判例篇 -->
+<section class="module" id="module-7" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+
+    <header class="module-header animate-in">
+      <span style="display:inline-block; font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.08em; color: var(--color-accent); background: var(--color-accent-light); border-radius: 999px; padding: 4px 14px; margin-bottom: var(--space-3);">番外篇 II · 真实事故档案</span>
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">07</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">实战判例篇</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">卷宗室里的相交事故</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 开场 + 卷宗室编目 -->
+      <section class="screen animate-in" style="margin-top: var(--space-10);">
+        <p style="font-size: var(--text-lg);">模块 6 拆完了机器。但这台机器在真实世界里翻过哪些车？圆锥碰球<strong>丢过交点</strong>，圆柱碰平面<strong>多算过交线</strong>……</p>
+        <p>OCCT 二十多年攒下的每一桩事故都没有被扔掉，而是写成「判例」永久归档在仓库的 <code>tests/</code> 目录里：出过的 bug → 最小复现脚本 → 每晚被 <span class="term" data-definition="CI（持续集成）：每次代码变动后自动跑全部测试的机器人。OCCT 的判例库就由它每晚复审。">CI</span> 复审一遍 → 同样的事故永不二犯。这套档案的编目方式：</p>
+        <div class="step-cards" style="display:flex; flex-direction:column; gap: var(--space-3); max-width: 640px; margin: var(--space-8) auto 0;">
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">组</div>
+            <div class="step-body">
+              <strong>tests/&lt;group&gt;</strong> —— 按科室分类
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);"><code>boolean</code> 布尔事故科，<code>lowalgos/intss</code> 曲面求交事故科……</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">卷</div>
+            <div class="step-body">
+              <strong>&lt;grid&gt;</strong> —— 同类案件合订本
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);"><code>bopfuse_simple</code>（简单 Fuse 卷）…每卷配公共工具 <code>begin</code> 和判读规则 <code>parse.rules</code>。</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">案</div>
+            <div class="step-body">
+              <strong>&lt;case&gt;</strong> —— 单个判例
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);"><code>bug21494_1</code>：一份几十行的<span class="term" data-definition="最小复现（minimal reproduction）：把一个 bug 削减到能触发问题的最少步骤。判例的灵魂——越小越容易诊断、越不容易误报。">最小复现</span>脚本，就是一桩案子的全部卷宗。</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-8);">读判例是理解相交算法最快的路。下面开三个抽屉，看三桩真实案件。</p>
+      </section>
+
+      <!-- Screen 2: 卷宗检索台 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">卷宗检索台：点开看案情</h2>
+        <div id="m7-cabinet" style="background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-md); padding: var(--space-8); margin: var(--space-6) 0;">
+          <div style="display:flex; flex-wrap:wrap; gap: var(--space-2);">
+            <button class="m7-drawer" onclick="m7Open(0, this)">🗂 案例一 · 锥球点交</button>
+            <button class="m7-drawer" onclick="m7Open(1, this)">🗂 案例二 · 圆外圆柱</button>
+            <button class="m7-drawer" onclick="m7Open(2, this)">🗂 案例三 · 外部物证</button>
+          </div>
+          <div id="m7-file" style="margin-top: var(--space-6); padding: var(--space-5); border-radius: var(--radius-sm); background: var(--color-accent-light); font-size: var(--text-sm); line-height:1.8; color: var(--color-text-secondary);">👆 点一个抽屉，案情卡会出现在这里。</div>
+        </div>
+      </section>
+
+      <!-- Screen 3: 案例一 锥球点交 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">案例一：锥碰球，交点不能丢</h2>
+        <p>案由 OCC21494「锥球相交失败」。判例原文（<code style="font-size: var(--text-xs);">tests/lowalgos/intss/bug21494_1</code>）——注意它的现场是<strong>当场搭建</strong>的，两行命令造形，零外部依赖：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · Draw/Tcl 判例</span>
+            <pre><code>
+<span class="code-line"><span class="code-function">pcone</span> bc 15 0 10</span>
+<span class="code-line"><span class="code-function">psphere</span> bs 10</span>
+<span class="code-line"><span class="code-function">explode</span> bc f</span>
+<span class="code-line"><span class="code-function">explode</span> bs f</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">set</span> log [<span class="code-function">bopcurves</span> bc_1 bs_1 -2d]</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-function">regexp</span> {Tolerance Reached=+([-0-9.+eE]+)\n+([-0-9.+eE]+)} $log full Toler NbCurv</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">if</span> { ![<span class="code-function">regexp</span> {1 point\(s\) found} $log full] } {</span>
+<span class="code-line">  <span class="code-function">puts</span> <span class="code-comment">"Error: Cone apex and Pole of sphere are excluded..."</span></span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-keyword">if</span> {$NbCurv != 1} {</span>
+<span class="code-line">  <span class="code-function">puts</span> <span class="code-comment">"Error: Please check NbCurves for intersector"</span></span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-keyword">if</span> { $Toler &gt; 2.0e-7} {</span>
+<span class="code-line">  <span class="code-function">puts</span> <span class="code-comment">"Error: Big tolerance value"</span></span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">现场搭建：造一个底半径 15、收尖到 0、高 10 的圆锥。</p>
+              <p class="tl">再造一个半径 10 的球。</p>
+              <p class="tl">把圆锥拆出面（bc_1 = 锥面）。</p>
+              <p class="tl">把球拆出面（bs_1 = 球面）。</p>
+              <p class="tl"></p>
+              <p class="tl">按快门！bopcurves 求两面交线，测量报告存进 log。</p>
+              <p class="tl"></p>
+              <p class="tl">用正则从报告里抠出两个数：实测容差 + 交线数。</p>
+              <p class="tl"></p>
+              <p class="tl">验收第 1 条：报告里必须有「找到 1 个交点」——</p>
+              <p class="tl">锥顶恰好戳在球上，那是一个孤立交点，丢了就是事故。</p>
+              <p class="tl"></p>
+              <p class="tl">验收第 2 条：交线必须恰好 1 条，</p>
+              <p class="tl">多一条少一条都报错。</p>
+              <p class="tl"></p>
+              <p class="tl">验收第 3 条：实测容差不得超过 2×10⁻⁷，</p>
+              <p class="tl">误差太大也算翻车。</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">📌</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！相交的结果有两种，不是一种</strong>
+            <p>交线（curves）之外还有<span class="term" data-definition="孤立交点（intersection point）：两张面只在一个点上接触时的产物——比如锥顶戳在球面上。它不属于任何交线，单独记账。">孤立交点</span>（points）。锥顶碰球极是「点接触」，产出的不是曲线而是一个点。这桩案子立案的原因，就是当年交点被悄悄弄丢了。所以 <code>bopcurves</code> 的报告里「N point(s) found」和曲线数是分开列的——验收时两样都要数。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: 案例二 圆外圆柱 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">案例二：数学说相交，边界说不行</h2>
+        <p>这桩是 C++ 判例（<code style="font-size: var(--text-xs);">GTests/IntTools_FaceFace_Test.cxx</code>），用 <span class="term" data-definition="GTest（GoogleTest）：C++ 单元测试框架。OCCT 用它写不需要 Draw 环境的细粒度判例，直接调 C++ 类。">GTest</span> 直接调用模块 6 拆过的 <code>IntTools_FaceFace</code>。先看现场布置——一张圆形平面（半径 10），一个站在 X=20 处的半圆柱：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · GTest 判例</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// Half cylinder with axis along Y, positioned far from plane center</span></span>
+<span class="code-line"><span class="code-comment">// The cylinder is at X=20, which is outside the plane's circular boundary (radius 10)</span></span>
+<span class="code-line"><span class="code-keyword">const</span> gp_Pnt <span class="code-function">aCylCenter</span>(20.0, 0.0, 0.0);</span>
+<span class="code-line"><span class="code-keyword">const</span> gp_Dir <span class="code-function">aCylAxis</span>(0.0, 1.0, 0.0);</span>
+<span class="code-line"><span class="code-keyword">const</span> <span class="code-keyword">double</span> aCylRadius = 2.0;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">官方注释直接写明案情：半圆柱沿 Y 轴立着，</p>
+              <p class="tl">站位 X=20——而平面的圆形边界半径只有 10。圆外！</p>
+              <p class="tl">圆柱轴心点：(20, 0, 0)。</p>
+              <p class="tl">轴向：竖直向上。</p>
+              <p class="tl">半径 2。现场全部用代码搭建，毫米不差。</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6);">无限大的平面和这根圆柱在数学上<strong>必然相交</strong>。但判决是——</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · 判决书</span>
+            <pre><code>
+<span class="code-line"><span class="code-function">EXPECT_EQ</span>(aNbCurves, 0) &lt;&lt; <span class="code-comment">"Expected no intersection curves, but found "</span> &lt;&lt; aNbCurves</span>
+<span class="code-line">                        &lt;&lt; <span class="code-comment">". The cylinder at X=20 is outside the circular plane (radius 10)."</span>;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">交线数必须等于 0。一条都不许有——</p>
+              <p class="tl">因为圆柱站在这张面的圆形边界之外。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">✂️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！曲面相交 ≠ 面相交</strong>
+            <p>面（face）= 曲面（surface）+ <span class="term" data-definition="边界（wire 裁剪）：面不是整张无限曲面，而是被一圈线框（wire）裁出来的有效区域——像用剪刀从大纸上剪下的一块形状。">边界裁剪</span>。引擎先算两张<em>曲面</em>的交线，再用各自的边界把交线裁到有效区域内。这一步曾经验证不严、多报过交线——于是有了这桩判例站岗。下次看到「明明该相交却返回空」，先想想：是不是落在边界之外？</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 5: 案例三 + 现场重建三法 + 游标卡尺 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">案发现场是怎么重建的？</h2>
+        <p>简单形状当场搭建。但真实工业模型（管道、叶轮）没法用两行命令造出来——这时用第二种手法，<strong>物证封存</strong>。看案例三（<code style="font-size: var(--text-xs);">tests/lowalgos/intss/bug29807_i1003</code>「无法从棱柱上切掉圆锥」）：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · 物证调取</span>
+            <pre><code>
+<span class="code-line"><span class="code-function">restore</span> [<span class="code-function">locate_data_file</span> bug29807-obj.brep] b1</span>
+<span class="code-line"><span class="code-function">restore</span> [<span class="code-function">locate_data_file</span> bug29807-tool.brep] b2</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-function">trotate</span> b2 +23.85857157145715500000 +12.00000000000000000000 +5.50000000000000000000 7 -7.14142842854285 0 -5</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">从证物库调取主件，存为 b1。locate_data_file 沿环境变量</p>
+              <p class="tl">CSF_TestDataPath 列出的目录搜索这份 .brep 物证。</p>
+              <p class="tl"></p>
+              <p class="tl">把工具件旋转到精确的案发角度——注意那串 20 位小数：</p>
+              <p class="tl">案发姿态差一丝一毫，事故就复现不出来。</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6);">最后认识每卷判例共用的「游标卡尺」（定义在 <code style="font-size: var(--text-xs);">tests/lowalgos/intss/begin</code>）——它回答一个根本问题：<strong>怎么证明一条曲线真的是交线？</strong></p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · 公共卡尺</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">proc</span> <span class="code-function">CheckIntersectionResult</span> {theSurf1 theSurf2 theListOfCurves theNbPoints theTolerS1 theTolerS2} {</span>
+<span class="code-line">  <span class="code-function">upvar</span> #0 $theSurf1 s1</span>
+<span class="code-line">  <span class="code-function">upvar</span> #0 $theSurf2 s2</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">foreach</span> a $theListOfCurves {</span>
+<span class="code-line">    <span class="code-function">bounds</span> aCurve U1 U2</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">if</span> {[<span class="code-function">dval</span> U2-U1] &lt; 1.0e-9} {</span>
+<span class="code-line">      <span class="code-function">puts</span> <span class="code-comment">"Error: Wrong range of $a"</span></span>
+<span class="code-line">    }</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-function">xdistcs</span> aCurve s1 U1 U2 $theNbPoints $theTolerS1</span>
+<span class="code-line">    <span class="code-function">xdistcs</span> aCurve s2 U1 U2 $theNbPoints $theTolerS2</span>
+<span class="code-line">  }</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">这把卡尺收 6 样东西：两张曲面、一串待验曲线、</p>
+              <p class="tl">抽样点数、对两张面各自的容差要求。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">对每条待验的「疑似交线」：</p>
+              <p class="tl">量出它的参数范围。</p>
+              <p class="tl"></p>
+              <p class="tl">范围小于 10⁻⁹？那它退化成一个点了——</p>
+              <p class="tl">不合格。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">关键两下：沿曲线抽 N 个样本点，实测每个点到 1 号面的距离；</p>
+              <p class="tl">再实测到 2 号面的距离。交线必须同时贴着两张面——</p>
+              <p class="tl">差一张，都不算交线。</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-info" style="margin-top: var(--space-8);">
+          <div class="callout-icon">🗃️</div>
+          <div class="callout-content">
+            <strong class="callout-title">现场重建三法，对号入座</strong>
+            <p>① <strong>现场搭建</strong>——box/pcone/psphere 当场造形，零依赖（案例一）；② <strong>物证封存</strong>——复杂形状存 .brep，restore 调取（案例三）；③ <strong>搭建+摆位</strong>——调取后再 trotate/explode 摆出案发姿态（案例三的第二步）。你给 AI 或同事报 bug 时，也按这三法构造最小复现——这是判例文化教给每个工程师的本事。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 6: bug 生命周期动画 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">一桩 bug 的一生，点一遍</h2>
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-m7-1","label":"报案：用户发现锥球相交丢了交点（OCC21494）"},
+          {"highlight":"flow-actor-m7-2","label":"重建现场：削成最小复现 —— pcone + psphere 两行造形","packet":true,"from":"actor-m7-1","to":"actor-m7-2"},
+          {"highlight":"flow-actor-m7-3","label":"修案：修复算法，bopcurves 报告 1 条交线 + 1 个交点，容差合格","packet":true,"from":"actor-m7-2","to":"actor-m7-3"},
+          {"highlight":"flow-actor-m7-4","label":"入档：复现脚本写进 tests/lowalgos/intss/bug21494_1，永久归档","packet":true,"from":"actor-m7-3","to":"actor-m7-4"},
+          {"highlight":"flow-actor-m7-5","label":"复审：CI 每晚把全部判例重跑一遍 —— 几千桩旧案夜夜过堂","packet":true,"from":"actor-m7-4","to":"actor-m7-5"},
+          {"highlight":"flow-actor-m7-6","label":"报警：未来任何改动若让旧判例翻案，第二天清晨即被揪出 —— 永不二犯","packet":true,"from":"actor-m7-5","to":"actor-m7-6"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-m7-1">
+              <div class="flow-actor-icon">🚨</div>
+              <span>报案</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m7-2">
+              <div class="flow-actor-icon">🔍</div>
+              <span>重建现场</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m7-3">
+              <div class="flow-actor-icon">🔧</div>
+              <span>修案</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m7-4">
+              <div class="flow-actor-icon">🗂</div>
+              <span>入档</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m7-5">
+              <div class="flow-actor-icon">🌙</div>
+              <span>夜审</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m7-6">
+              <div class="flow-actor-icon">🔔</div>
+              <span>报警</span>
+            </div>
+          </div>
+          <div class="flow-packet"></div>
+          <div class="flow-step-label">点「下一步」走完一桩案子</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">下一步</button>
+            <button class="btn flow-reset-btn">重来</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 7: Quiz + 收尾 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">判例研习考核</h2>
+        <div class="quiz-container" id="quiz-module7">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="对！修复只是上半场；下半场是把最小复现写成判例入档 tests/，CI 每晚复审。没有判例的修复，五年后大概率被某次重构悄悄弄丢。"
+               data-explanation-wrong="想想流程动画的后三站：修完之后还做了什么，才让这桩事故「永不二犯」？">
+            <h3 class="quiz-question">你修好了一个面面求交的 bug。怎么保证它五年后不悄悄复发？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>在代码里多写几行注释，提醒后人别改坏</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>把最小复现写成判例入档 tests/，让 CI 每晚复审</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>把相关代码锁起来禁止任何人修改</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="对！判例的验收从来不止一项：曲线数对不对、容差有没有超标、（如有）孤立交点在不在——案例一就是三连查。只断言一项，另一项坏了你根本不知道。"
+               data-explanation-wrong="回看案例一的三个 if：它检查了几样东西？少查一样会怎样？">
+            <h3 class="quiz-question">bopcurves 输出「Tolerance Reached=3e-5」和「2 curve(s) found」。写判例时该断言什么？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>只断言交线数等于 2——曲线对了就行</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>只断言容差不超标——精度才是生命线</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>曲线数和容差都要断言，缺一不可</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="正确！面 = 曲面 + 边界裁剪。无限曲面相交，但交线全部落在面的有效区域之外时，正确答案就是 0 条——案例二的判例守的就是这条线。"
+               data-explanation-wrong="回想案例二：无限平面和圆柱明明相交，为什么判决书要求 0 条交线？圆柱站在哪里？">
+            <h3 class="quiz-question">无限平面与圆柱在数学上必然相交，但 IntTools_FaceFace 返回 0 条交线。什么情况下这是<strong>正确</strong>答案？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>圆柱落在那张面的边界裁剪区域之外——曲面相交但面不相交</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>不存在这种情况，返回 0 一定是 bug</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>只要把容差调大，总能交出曲线来</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module7')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module7')">再试一次</button>
+        </div>
+
+        <div class="callout callout-accent" style="margin-top: var(--space-12);">
+          <div class="callout-icon">⚖️</div>
+          <div class="callout-content">
+            <strong class="callout-title">番外 II 完 · 写一桩你自己的判例</strong>
+            <p>在 <span class="term" data-definition="Draw：OCCT 自带的命令行测试台，可以敲命令直接建模、做布尔、看结果。源码在 src/Draw。">Draw</span> 里只要五行：造两个形（<code>box</code>/<code>pcone</code>），<code>explode</code> 拆面，<code>bopcurves</code> 按快门，再用 <code>regexp</code> 给报告立验收标准。恭喜——你已经看得懂卷宗室里的每一份档案，也有资格往里面添一份了。🎉</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var M7_CASES = [
+        {
+          title: '案例一 · 锥球点交（OCC21494）',
+          how: '现场搭建：pcone + psphere 两行命令程序化造形，零外部依赖。',
+          accept: '验收三连：交线恰好 1 条；锥顶/球极的孤立交点必须在场；实测容差 ≤ 2e-7。',
+          verdict: '判决要点：相交结果 = 交线 + 交点两本账，点接触产出的是孤立交点，丢失即事故。'
+        },
+        {
+          title: '案例二 · 圆外圆柱（GTest · IntTools_FaceFace_Test）',
+          how: '现场搭建（C++ 版）：Geom_Plane / Geom_CylindricalSurface + BRepBuilderAPI_MakeFace 精确造面。',
+          accept: '验收：EXPECT_EQ(aNbCurves, 0) —— 一条交线都不许有。',
+          verdict: '判决要点：面 = 曲面 + 边界裁剪。无限曲面相交 ≠ 有界面相交，边界验证曾出过多报交线的事故。'
+        },
+        {
+          title: '案例三 · 外部物证（bug29807）',
+          how: '物证封存 + 摆位：restore [locate_data_file *.brep] 从 CSF_TestDataPath 证物库调取，再 trotate 用 20 位小数摆出案发姿态。',
+          accept: '验收：交线恰好 2 条；实测容差 ≤ 5.1e-5（复杂工业面，标准比解析面宽）。',
+          verdict: '判决要点：复杂现场靠封存物证复现；姿态精度是复现成败的生命线。'
+        }
+      ];
+      window.m7Open = function (idx, btn) {
+        var box = document.getElementById('m7-cabinet');
+        if (!box) return;
+        var btns = box.querySelectorAll('.m7-drawer');
+        Array.prototype.forEach.call(btns, function (b) { b.classList.remove('m7-open'); });
+        btn.classList.add('m7-open');
+        var c = M7_CASES[idx];
+        document.getElementById('m7-file').innerHTML =
+          '<strong style="color: var(--color-text);">' + c.title + '</strong><br>' +
+          '🔍 <strong>现场重建：</strong>' + c.how + '<br>' +
+          '📏 <strong>验收标准：</strong>' + c.accept + '<br>' +
+          '⚖️ <strong>' + c.verdict.replace('：', '：</strong>');
+      };
+    })();
+  </script>
+  <style>
+    #m7-cabinet .m7-drawer {
+      font-family: var(--font-body, inherit);
+      font-size: var(--text-sm);
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+      background: var(--color-bg);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 150ms;
+    }
+    #m7-cabinet .m7-drawer:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+      transform: translateY(-1px);
+    }
+    #m7-cabinet .m7-drawer.m7-open {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: #fff;
+      font-weight: 600;
+    }
+  </style>
+</section>

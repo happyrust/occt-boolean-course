@@ -1,0 +1,469 @@
+<!-- Module 6 (番外篇): 相交计算的几何引擎 -->
+<section class="module" id="module-6" style="background: var(--color-bg)">
+  <div class="module-content">
+
+    <header class="module-header animate-in">
+      <span style="display:inline-block; font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.08em; color: var(--color-accent); background: var(--color-accent-light); border-radius: 999px; padding: 4px 14px; margin-bottom: var(--space-3);">番外篇 · 给好奇者的拆机报告</span>
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">06</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">相交计算的几何引擎</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">三条求交路线与夜路描缝</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 开场 + 三层委托链 -->
+      <section class="screen animate-in" style="margin-top: var(--space-10);">
+        <p style="font-size: var(--text-lg);">正课在上一章已经完结。但模块 3 留了一个没拆的盲盒：流水线压轴的 FF 站「算出交线、最贵」——可交线到底是<strong>怎么</strong>算出来的？一张圆柱面和一张汽车引擎盖那样的曲面相交，世界上根本没有现成公式。</p>
+        <p>这一章打开那台机器的外壳。先看清委托链——摄影组（PaveFiller）自己并不动手算几何，它层层外包：</p>
+        <div class="step-cards" style="display:flex; flex-direction:column; gap: var(--space-3); max-width: 640px; margin: var(--space-8) auto 0;">
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">1</div>
+            <div class="step-body">
+              <strong>摄影组的 FF 站（BOPAlgo_PaveFiller）</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">只负责调度：「3 号面和 7 号面，去查一下交在哪。」</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">2</div>
+            <div class="step-body">
+              <strong>测绘队队长（IntTools_FaceFace）</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">接单的承包商：备好两张面的资料，把测量结果整理成「交线」交回去。</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">3</div>
+            <div class="step-body">
+              <strong>几何引擎（IntPatch_Intersection）</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">真正下场测量的人。第一件事不是算，而是<strong>分诊</strong>：这单子走哪条路线？</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 2: 分诊台与三条路线 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">分诊台：先验明正身，再选路线</h2>
+        <p>测绘队把曲面分成两类。平面、圆柱、球、锥这类「正规几何」，交线有现成的数学公式，能写出<span class="term" data-definition="解析解：用公式直接算出的精确答案。比如两个平面的交线一定是一条直线，直线方程可以直接写出来——不用采样、不用逼近。">解析解</span>；而 <span class="term" data-definition="B 样条（B-Spline/NURBS）：用一组控制点定义的自由曲线/曲面，可以表达任意形状（车身、船体、鼠标外壳）。代价是：几乎没有现成的求交公式。">B 样条</span>这类<span class="term" data-definition="自由曲面：没有简单数学公式的曲面，形状由控制点网格决定。CAD 里的复杂外形几乎都是自由曲面。">自由曲面</span>没有公式，只能实地测量。验身的源码就这几行：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · IntPatch_Intersection.cxx</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// Surface type definition</span></span>
+<span class="code-line"><span class="code-keyword">int</span> ts1 = 0;</span>
+<span class="code-line"><span class="code-keyword">switch</span> (typs1)</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-keyword">case</span> GeomAbs_Plane:</span>
+<span class="code-line">  <span class="code-keyword">case</span> GeomAbs_Cylinder:</span>
+<span class="code-line">  <span class="code-keyword">case</span> GeomAbs_Sphere:</span>
+<span class="code-line">  <span class="code-keyword">case</span> GeomAbs_Cone:</span>
+<span class="code-line">    ts1 = 1;</span>
+<span class="code-line">    <span class="code-keyword">break</span>;</span>
+<span class="code-line">  <span class="code-keyword">case</span> GeomAbs_Torus:</span>
+<span class="code-line">    ts1 = bGeomGeom;</span>
+<span class="code-line">    <span class="code-keyword">break</span>;</span>
+<span class="code-line">  <span class="code-keyword">default</span>:</span>
+<span class="code-line">    <span class="code-keyword">break</span>;</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">给 1 号曲面验明正身。</p>
+              <p class="tl">先假设它是「自由曲面」（0 分）。</p>
+              <p class="tl">看看它登记的类型——</p>
+              <p class="tl">开始逐项核对：</p>
+              <p class="tl">平面？</p>
+              <p class="tl">圆柱面？</p>
+              <p class="tl">球面？</p>
+              <p class="tl">锥面？</p>
+              <p class="tl">以上四种都算「正规几何」，记 1 分。</p>
+              <p class="tl">核对完毕。</p>
+              <p class="tl">圆环面（甜甜圈）？特殊对待——</p>
+              <p class="tl">只有轴线对齐等好情况才算正规（bGeomGeom）。</p>
+              <p class="tl">否则按自由曲面处理。</p>
+              <p class="tl">其余一切（B 样条、拉伸面、偏移面…）</p>
+              <p class="tl">保持 0 分：没有公式，得实地测量。</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6);">两张面各打一次分，加起来就是路线图。源码注释原话："Possible intersection types: <strong>Geom-Geom</strong> / <strong>Geom-Param</strong> / <strong>Param-Param</strong>"：</p>
+        <div class="pattern-cards" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); margin-top: var(--space-4);">
+          <div class="pattern-card" style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm); border-top: 3px solid #2A7B9B;">
+            <h4 class="pattern-title" style="margin:0 0 var(--space-2);">📖 查公式（1+1）</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">两张都正规：翻开代数表直接抄答案。平面×平面=直线，平面×圆柱=椭圆……结果是<strong>精确曲线</strong>，又快又准。</p>
+          </div>
+          <div class="pattern-card" style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm); border-top: 3px solid #5A9DB8;">
+            <h4 class="pattern-title" style="margin:0 0 var(--space-2);">📐 半查半量（1+0）</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">一张正规一张自由：正规的那张提供方程当「路标」，自由的那张沿路采样。中等开销。</p>
+          </div>
+          <div class="pattern-card" style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm); border-top: 3px solid #1F6280;">
+            <h4 class="pattern-title" style="margin:0 0 var(--space-2);">🔦 夜路描缝（0+0）</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">两张都自由：没有任何公式可查，只能打着手电沿交缝<strong>一步步走出来</strong>。最贵的路线，下一节详拆。</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; margin-top: var(--space-12);">动手分诊：你来当队长</h2>
+        <p>给两张待求交的曲面各选一个类型，看看测绘队会派哪条路线：</p>
+        <div id="m6-dispatch" style="background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-md); padding: var(--space-8); margin: var(--space-6) 0;">
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-6);">
+            <div>
+              <p style="font-weight:600; margin:0 0 var(--space-3); font-family: var(--font-display);">曲面 A</p>
+              <div data-m6-group="a" style="display:flex; flex-wrap:wrap; gap: var(--space-2);">
+                <button class="m6-choice" data-kind="1" onclick="m6Pick('a','平面',this)">平面</button>
+                <button class="m6-choice" data-kind="1" onclick="m6Pick('a','圆柱',this)">圆柱</button>
+                <button class="m6-choice" data-kind="1" onclick="m6Pick('a','球面',this)">球面</button>
+                <button class="m6-choice" data-kind="0" onclick="m6Pick('a','自由曲面',this)">自由曲面</button>
+              </div>
+            </div>
+            <div>
+              <p style="font-weight:600; margin:0 0 var(--space-3); font-family: var(--font-display);">曲面 B</p>
+              <div data-m6-group="b" style="display:flex; flex-wrap:wrap; gap: var(--space-2);">
+                <button class="m6-choice" data-kind="1" onclick="m6Pick('b','平面',this)">平面</button>
+                <button class="m6-choice" data-kind="1" onclick="m6Pick('b','圆柱',this)">圆柱</button>
+                <button class="m6-choice" data-kind="1" onclick="m6Pick('b','球面',this)">球面</button>
+                <button class="m6-choice" data-kind="0" onclick="m6Pick('b','自由曲面',this)">自由曲面</button>
+              </div>
+            </div>
+          </div>
+          <div id="m6-route" style="margin-top: var(--space-6); padding: var(--space-5); border-radius: var(--radius-sm); background: var(--color-accent-light); font-size: var(--text-sm); line-height:1.7; color: var(--color-text-secondary);">👆 两边各选一个类型，分诊结果会出现在这里。</div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--color-text-muted);">* 圆环面（甜甜圈）是「看情况」选手：只有轴线对齐等特殊摆位才能走公式路线——就是上面代码里那个 <code>bGeomGeom</code>。</p>
+      </section>
+
+      <!-- Screen 3: 夜路描缝 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">夜路描缝：没有公式的地方，用脚走</h2>
+        <p>最贵的 Param-Param 路线，OCCT 的类名叫 <code>IntWalk_PWalking</code>——名字里就带着 walking。先看官方注释怎么自我介绍：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · IntWalk_PWalking.hxx</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">//! This class implements an algorithm to determine the</span></span>
+<span class="code-line"><span class="code-comment">//! intersection between 2 parametrized surfaces, marching from</span></span>
+<span class="code-line"><span class="code-comment">//! a starting point. The intersection line</span></span>
+<span class="code-line"><span class="code-comment">//! starts and ends on the natural surface's boundaries.</span></span>
+<span class="code-line"><span class="code-keyword">class</span> <span class="code-function">IntWalk_PWalking</span></span>
+<span class="code-line">{</span>
+<span class="code-line"><span class="code-keyword">public</span>:</span>
+<span class="code-line">  DEFINE_STANDARD_ALLOC</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-comment">//! Constructor used to set the data to compute intersection</span></span>
+<span class="code-line">  <span class="code-comment">//! lines between Caro1 and Caro2.</span></span>
+<span class="code-line">  <span class="code-comment">//! Deflection is the maximum deflection admitted between two</span></span>
+<span class="code-line">  <span class="code-comment">//! consecutive points on the resulting polyline.</span></span>
+<span class="code-line">  <span class="code-comment">//! TolTangency is the tolerance to find a tangent point.</span></span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">这个类负责求两张「参数化曲面」的交线，</p>
+              <p class="tl">方法是：从一个起点出发，行进（marching）。</p>
+              <p class="tl">走出来的交线</p>
+              <p class="tl">起止于曲面的自然边界（走到边就停）。</p>
+              <p class="tl">类名直译：「点行走」。</p>
+              <p class="tl">类定义开始。</p>
+              <p class="tl">公开接口。</p>
+              <p class="tl">内存分配样板代码（可忽略）。</p>
+              <p class="tl"></p>
+              <p class="tl">构造函数：登记这单测量任务的资料——</p>
+              <p class="tl">两张待求交的曲面 Caro1、Caro2。</p>
+              <p class="tl">Deflection（允许偏差）= 步子最大能迈多大：</p>
+              <p class="tl">相邻两颗「图钉」之间允许偏离真实曲线多远。</p>
+              <p class="tl">TolTangency = 判定「切着碰」的容差。</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-8);">把它画出来就是这张图——两张纸面的交缝处，测绘队边走边钉图钉，最后用一根丝线把图钉串成光滑曲线：</p>
+        <figure style="margin: var(--space-8) 0;">
+          <img src="images/seam-survey.png" alt="夜路描缝隐喻：两张交叠纸面的交缝处钉着一排图钉，青色丝线穿过图钉形成光滑曲线" style="width:100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); display:block;">
+          <figcaption style="text-align:center; font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-3);">图钉 = 行走法的采样点（折线 WLine），丝线 = 拟合出的 B 样条交线</figcaption>
+        </figure>
+        <p>走完一遍，手里得到的是一串离散的图钉——源码里叫 <span class="term" data-definition="WLine（Walking Line）：行走法的直接产物，一条由离散采样点组成的折线。它还不是光滑曲线，只是交线的「素描稿」。">WLine 折线</span>。但布尔运算的档案室要的是一条真正的曲线，所以最后一步是<span class="term" data-definition="拟合（approximation）：用一条光滑的 B 样条曲线尽量贴近一串离散点。拟合永远有误差——曲线不会恰好穿过每个点，只保证偏差小于给定阈值。">拟合</span>：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · IntTools_FaceFace.cxx</span>
+            <pre><code>
+<span class="code-line">occ::handle&lt;Geom_Curve&gt; aBSp = GeomInt_IntSS::<span class="code-function">MakeBSpline</span>(WL, ifprm, ilprm);</span>
+<span class="code-line"><span class="code-comment">//</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myApprox1)</span>
+<span class="code-line">{</span>
+<span class="code-line">  H1 = GeomInt_IntSS::<span class="code-function">MakeBSpline2d</span>(WL, ifprm, ilprm, <span class="code-keyword">true</span>);</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-comment">//</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myApprox2)</span>
+<span class="code-line">{</span>
+<span class="code-line">  H2 = GeomInt_IntSS::<span class="code-function">MakeBSpline2d</span>(WL, ifprm, ilprm, <span class="code-keyword">false</span>);</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-comment">//</span></span>
+<span class="code-line">IntTools_Curve <span class="code-function">aIC</span>(aBSp, H1, H2);</span>
+<span class="code-line">mySeqOfCurve.<span class="code-function">Append</span>(aIC);</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">把图钉串 WL 拟合成一条光滑的 3D B 样条曲线。</p>
+              <p class="tl"></p>
+              <p class="tl">如果客户还要 1 号面上的「影子版」——</p>
+              <p class="tl"></p>
+              <p class="tl">在 1 号面的参数地图上再画一条 2D 曲线（pcurve）。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">2 号面同理——</p>
+              <p class="tl"></p>
+              <p class="tl">也画一条 2D 影子。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">3D 曲线 + 两张 2D 影子，打包成一条「交线」。</p>
+              <p class="tl">归档，交给摄影组继续穿珍珠。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！交线不是「算出来的」，是「量出来+描出来的」</strong>
+            <p>查公式路线给的是精确曲线；但走夜路得到的交线是<strong>测量 + 拟合的产物</strong>，天生带误差。OCCT 不藏着掖着：<code>ComputeTolReached3d</code> 会把「3D 曲线和两张面之间的实际最大偏差」量出来，作为这条交线的<span class="term" data-definition="容差（tolerance）：形状自带的「误差半径」。交线的容差 = 拟合后实测的最大偏差——比输入面的容差大是正常现象。">容差</span>写进档案。所以布尔结果里新边的容差常常比输入大——这不是 bug，是一份诚实的测量报告。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: 全流程动画 + 器材间 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">一张订单的全流程，点一遍</h2>
+        <p>把整章串起来：FF 站派一张「3 号面 × 7 号面」的订单下来，测绘队从接单到交付：</p>
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-m6-1","label":"接单：IntTools_FaceFace 备齐两张面的资料（几何、边界、容差）"},
+          {"highlight":"flow-actor-m6-2","label":"分诊：IntPatch 给两张面验明正身 —— 正规几何还是自由曲面？","packet":true,"from":"actor-m6-1","to":"actor-m6-2"},
+          {"highlight":"flow-actor-m6-3","label":"路线一·查公式：双正规直接抄解析解，得到直线/圆/椭圆等精确曲线","packet":true,"from":"actor-m6-2","to":"actor-m6-3"},
+          {"highlight":"flow-actor-m6-4","label":"路线三·夜路描缝：找到起点后沿交缝行走，每步钉一颗图钉（受 Deflection 限步）","packet":true,"from":"actor-m6-2","to":"actor-m6-4"},
+          {"highlight":"flow-actor-m6-5","label":"拟合：把图钉折线 WLine 连成光滑 B 样条，再给两张面各画一条 2D 影子（pcurve）","packet":true,"from":"actor-m6-4","to":"actor-m6-5"},
+          {"highlight":"flow-actor-m6-6","label":"交付：实测拟合误差写进容差（ComputeTolReached3d），交线归档 —— 摄影组接着穿珍珠","packet":true,"from":"actor-m6-5","to":"actor-m6-6"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-m6-1">
+              <div class="flow-actor-icon">📋</div>
+              <span>接单</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m6-2">
+              <div class="flow-actor-icon">🩺</div>
+              <span>分诊</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m6-3">
+              <div class="flow-actor-icon">📖</div>
+              <span>查公式</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m6-4">
+              <div class="flow-actor-icon">🔦</div>
+              <span>走夜路</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m6-5">
+              <div class="flow-actor-icon">🪡</div>
+              <span>拟合</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-m6-6">
+              <div class="flow-actor-icon">📦</div>
+              <span>交付</span>
+            </div>
+          </div>
+          <div class="flow-packet"></div>
+          <div class="flow-step-label">点「下一步」走一遍测绘流程</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">下一步</button>
+            <button class="btn flow-reset-btn">重来</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; margin-top: var(--space-12);">器材间：贵的仪器只造一次</h2>
+        <p>测量途中要反复用到两件贵重仪器：<span class="term" data-definition="投影器（projector）：把一个 3D 点「垂直投」到曲面/曲线上，找出最近的落点。构建一次很贵，但建好后可以反复使用。">投影器</span>（这个点投到面上落在哪？）和<span class="term" data-definition="分类器（classifier）：判断一个点相对形状的位置——在里面、在外面、还是恰好在边界上。">分类器</span>（这个点在面的范围内吗？）。为整场布尔运算服务的「器材间」就是 <code>IntTools_Context</code>：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · IntTools_Context.hxx</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">//! The intersection Context contains geometrical</span></span>
+<span class="code-line"><span class="code-comment">//! and topological toolkit (classifiers, projectors, etc).</span></span>
+<span class="code-line"><span class="code-comment">//! The intersection Context is for caching the tools</span></span>
+<span class="code-line"><span class="code-comment">//! to increase the performance.</span></span>
+<span class="code-line"><span class="code-keyword">class</span> <span class="code-function">IntTools_Context</span> : <span class="code-keyword">public</span> Standard_Transient</span>
+<span class="code-line">{</span>
+<span class="code-line"><span class="code-keyword">public</span>:</span>
+<span class="code-line">  <span class="code-comment">//! Returns a reference to point classifier</span></span>
+<span class="code-line">  <span class="code-comment">//! for given face</span></span>
+<span class="code-line">  Standard_EXPORT IntTools_FClass2d&amp; <span class="code-function">FClass2d</span>(<span class="code-keyword">const</span> TopoDS_Face&amp; aF);</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-comment">//! Returns a reference to point projector</span></span>
+<span class="code-line">  <span class="code-comment">//! for given face</span></span>
+<span class="code-line">  Standard_EXPORT GeomAPI_ProjectPointOnSurf&amp; <span class="code-function">ProjPS</span>(<span class="code-keyword">const</span> TopoDS_Face&amp; aF);</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">官方注释：Context 装着几何/拓扑工具箱</p>
+              <p class="tl">（分类器、投影器等等）。</p>
+              <p class="tl">存在的意义只有一个：把工具缓存起来，</p>
+              <p class="tl">提高性能。</p>
+              <p class="tl">类定义开始。</p>
+              <p class="tl"></p>
+              <p class="tl">公开接口。</p>
+              <p class="tl">「给我 3 号面的点分类器」——</p>
+              <p class="tl">没有就现造一台，造完留在架子上；</p>
+              <p class="tl">下次再要，直接从架子上拿。</p>
+              <p class="tl"></p>
+              <p class="tl">「给我 3 号面的投影器」——</p>
+              <p class="tl">同样的租赁规则。</p>
+              <p class="tl">每张面一台，全场共用。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-info" style="margin-top: var(--space-8);">
+          <div class="callout-icon">🔧</div>
+          <div class="callout-content">
+            <strong class="callout-title">器材间的租赁规则</strong>
+            <p>整场布尔运算从头到尾只有<strong>一间</strong>器材间——摄影组开工时建好，传给每个外包队。仪器按「哪张面/哪条边」登记：第一次借要现造（贵），之后人人都直接取用（免费）。几十万次「点在不在面里」的查询，就是这样才跑得动的。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 5: Quiz + 番外收尾 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">测绘队入队考核</h2>
+        <div class="quiz-container" id="quiz-module6">
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="对！两张自由曲面都是 0 分，0+0 走 Param-Param——没有公式可查，只能行走采样，再把折线拟合成 B 样条。"
+               data-explanation-wrong="先给两张面打分：引擎盖是典型的自由曲面（B 样条），有公式吗？两个 0 分加起来走哪条路线？">
+            <h3 class="quiz-question">两张汽车引擎盖那样的自由曲面求交，测绘队走哪条路线？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>查公式（Geom-Geom）——所有曲面都有解析解</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>半查半量（Geom-Param）——总有一边能提供方程</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>夜路描缝（Param-Param）——从起点行走采样，折线再拟合</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="正确！平面/圆柱是正规几何，全程查公式：交线直接是精确的直线和椭圆，免行走、免拟合、误差更小。能用正规几何建模就别转 NURBS——布尔又快又稳。"
+               data-explanation-wrong="想想分诊台的打分表：平面和圆柱得几分？NURBS 得几分？哪条路线不用行走也不用拟合？">
+            <h3 class="quiz-question">同一个法兰零件，用「平面+圆柱」建模，或整体转成 NURBS 自由曲面再做布尔。哪个更快更稳？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>平面+圆柱版——双正规走查公式路线，免行走免拟合</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>NURBS 版——自由曲面更「高级」，算法会优先优化</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>完全一样——形状相同，路线就相同</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="对！走夜路的交线是测量+拟合的产物，ComputeTolReached3d 把实测最大偏差如实写进容差。这是诚实的误差报告，不是故障。"
+               data-explanation-wrong="回想 aha 框：哪条路线的交线天生带拟合误差？OCCT 对这个误差的态度是隐瞒还是如实记录？">
+            <h3 class="quiz-question">布尔结果中，交线处新边的容差比两张输入面都大。最可能的来源是？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>内存不足导致计算被截断</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>行走+拟合的逼近误差被实测后如实写入——正常现象</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>一定是建模软件导出时损坏了文件</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module6')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module6')">再试一次</button>
+        </div>
+
+        <div class="callout callout-accent" style="margin-top: var(--space-12);">
+          <div class="callout-icon">📷</div>
+          <div class="callout-content">
+            <strong class="callout-title">番外完 · 亲手按一次快门</strong>
+            <p>在 <span class="term" data-definition="Draw：OCCT 自带的命令行测试台，可以敲命令直接建模、做布尔、看结果。源码在 src/Draw。">Draw</span> 测试台里敲 <code>bopcurves f1 f2 -2d</code>，就能直接看到两张面的交线——这正是本章测绘队的独立出口。回头再看模块 5：Fuzzy Value 调的，其实就是这台几何引擎的判定松紧。机器拆完了，盲盒没有了。🎉</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      window.m6Pick = function (group, name, btn) {
+        var box = document.getElementById('m6-dispatch');
+        if (!box) return;
+        var btns = box.querySelectorAll('[data-m6-group="' + group + '"] .m6-choice');
+        Array.prototype.forEach.call(btns, function (b) { b.classList.remove('m6-selected'); });
+        btn.classList.add('m6-selected');
+        box.setAttribute('data-sel-' + group, btn.getAttribute('data-kind'));
+        box.setAttribute('data-name-' + group, name);
+        var a = box.getAttribute('data-sel-a');
+        var b2 = box.getAttribute('data-sel-b');
+        var route = document.getElementById('m6-route');
+        if (a === null || b2 === null || !route) return;
+        var na = box.getAttribute('data-name-a');
+        var nb = box.getAttribute('data-name-b');
+        var sum = parseInt(a, 10) + parseInt(b2, 10);
+        var html = '<strong style="color: var(--color-text);">' + na + ' × ' + nb + '</strong> → ';
+        if (sum === 2) {
+          html += '<strong style="color:#2A7B9B;">📖 查公式（Geom-Geom）</strong><br>两张都是正规几何，直接抄解析解。结果是直线/圆/椭圆等精确曲线。成本：<strong>▮▯▯ 快</strong>，误差最小。';
+        } else if (sum === 1) {
+          html += '<strong style="color:#5A9DB8;">📐 半查半量（Geom-Param）</strong><br>正规的一张出方程当路标，自由的一张沿路采样。成本：<strong>▮▮▯ 中</strong>。';
+        } else {
+          html += '<strong style="color:#1F6280;">🔦 夜路描缝（Param-Param）</strong><br>无公式可查：找起点 → 沿缝行走钉图钉 → 折线拟合成 B 样条 → 实测误差写入容差。成本：<strong>▮▮▮ 贵</strong>。';
+        }
+        route.innerHTML = html;
+      };
+    })();
+  </script>
+  <style>
+    #m6-dispatch .m6-choice {
+      font-family: var(--font-body, inherit);
+      font-size: var(--text-sm);
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: 1px solid var(--color-border);
+      background: var(--color-bg);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 150ms;
+    }
+    #m6-dispatch .m6-choice:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+    #m6-dispatch .m6-choice.m6-selected {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: #fff;
+      font-weight: 600;
+    }
+  </style>
+</section>

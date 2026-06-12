@@ -1,0 +1,307 @@
+<!-- Module 4: 建造部分 -->
+<section class="module" id="module-4" style="background: var(--color-bg)">
+  <div class="module-content">
+
+    <header class="module-header animate-in">
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">04</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">建造部分</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">GF 切好整个蛋糕，BOP 按订单装盘</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 蛋糕隐喻 -->
+      <section class="screen animate-in" style="margin-top: var(--space-10);">
+        <p style="font-size: var(--text-lg);">零件已切好、整齐躺在档案室。现在导演（<code>BOPAlgo_BOP</code>）登场——他从不亲自切割，只负责<strong>挑选与拼装</strong>。</p>
+        <figure style="margin: var(--space-8) 0;">
+          <img src="images/builder-cake.png" alt="自助蛋糕台：整切蛋糕与三个不同装盘订单" style="width:100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); display:block;">
+          <figcaption style="text-align:center; font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-3);">后厨只切一次（左），订单各自装盘（右）：全要 / 只要公共块 / 只要自己的块</figcaption>
+        </figure>
+        <p>这就是 <span class="term" data-definition="General Fuse（GF，通用融合）：把所有参与形状沿一切相交处完全切开、得到「全部碎块」的基础算法。OCCT 类名 BOPAlgo_Builder。">General Fuse</span> 的精髓：把两个叠在一起的蛋糕沿所有接触面<strong>全部切开</strong>，得到三类碎块——S1 独有（Sp1）、S2 独有（Sp2）、公共（Sp12）。四种布尔操作只是四张不同的「装盘订单」。</p>
+      </section>
+
+      <!-- Screen 2: 订单卡片 + 拖拽 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">四张装盘订单</h2>
+        <div style="display:flex; gap: var(--space-6); justify-content:center; margin: var(--space-4) 0; font-size: var(--text-sm);">
+          <span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#5B7DB1; vertical-align:middle; margin-right:6px;"></span>Sp1 = S1 独有</span>
+          <span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#E8C77D; vertical-align:middle; margin-right:6px;"></span>Sp2 = S2 独有</span>
+          <span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#7FA86B; vertical-align:middle; margin-right:6px;"></span>Sp12 = 公共</span>
+        </div>
+        <div class="pattern-cards" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4);">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <h4 class="pattern-title" style="margin: 0 0 var(--space-2);">FUSE</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">全都装走：<strong>Sp1 + Sp2 + Sp12</strong>，再把内壁熔掉变成一个整体。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <h4 class="pattern-title" style="margin: 0 0 var(--space-2);">COMMON</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">只装公共夹层：<strong>Sp12</strong>。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <h4 class="pattern-title" style="margin: 0 0 var(--space-2);">CUT (12)</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">只装第一个蛋糕没碰过对方的部分：<strong>Sp1</strong>。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <h4 class="pattern-title" style="margin: 0 0 var(--space-2);">CUT21</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">反向订单：<strong>Sp2</strong>。</p>
+          </div>
+        </div>
+
+        <h3 style="font-family: var(--font-display); font-size: var(--text-xl); font-weight:600; margin-top: var(--space-12);">拖一拖：订单 → 装盘内容</h3>
+        <p style="font-size: var(--text-sm); color: var(--color-text-secondary);">把左边的「订单」拖到右边对应的「盘子」上：</p>
+        <div class="dnd-container" id="dnd-module4">
+          <div class="dnd-chips">
+            <div class="dnd-chip" draggable="true" data-answer="fuse">FUSE 的结果</div>
+            <div class="dnd-chip" draggable="true" data-answer="common">COMMON 的结果</div>
+            <div class="dnd-chip" draggable="true" data-answer="cut12">CUT 的结果</div>
+            <div class="dnd-chip" draggable="true" data-answer="cut21">CUT21 的结果</div>
+          </div>
+          <div class="dnd-zones">
+            <div class="dnd-zone" data-correct="fuse">
+              <p class="dnd-zone-label">Sp1 + Sp2 + Sp12（全部碎块）</p>
+              <div class="dnd-zone-target">拖到这里</div>
+            </div>
+            <div class="dnd-zone" data-correct="common">
+              <p class="dnd-zone-label">Sp12（只有公共块）</p>
+              <div class="dnd-zone-target">拖到这里</div>
+            </div>
+            <div class="dnd-zone" data-correct="cut12">
+              <p class="dnd-zone-label">Sp1（只有 S1 的独有块）</p>
+              <div class="dnd-zone-target">拖到这里</div>
+            </div>
+            <div class="dnd-zone" data-correct="cut21">
+              <p class="dnd-zone-label">Sp2（只有 S2 的独有块）</p>
+              <div class="dnd-zone-target">拖到这里</div>
+            </div>
+          </div>
+          <button class="btn" onclick="checkDnD('dnd-module4')">检查配对</button>
+          <button class="btn" onclick="resetDnD('dnd-module4')">重置</button>
+        </div>
+      </section>
+
+      <!-- Screen 3: BOP 流程 code -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">导演的工作清单</h2>
+        <p>BOP 的总流程（<code style="font-size: var(--text-xs);">BOPAlgo_BOP.cxx</code> 的 PerformInternal1）从「填映像表」开始。<span class="term" data-definition="Images（映像）：一张「原始形状 → 它切分后的替身们」的映射表。原始边 E 的 images 就是它被剪出的那些小段。建造部分的核心数据。">Images</span> 是核心词——记录每个原始形状变成了哪些碎块：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// 3. Fill Images</span></span>
+<span class="code-line"><span class="code-comment">// 3.1 Vertices</span></span>
+<span class="code-line"><span class="code-function">FillImagesVertices</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_TreatVertices)));</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">HasErrors</span>())</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-keyword">return</span>;</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-function">BuildResult</span>(TopAbs_VERTEX);</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">HasErrors</span>())</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-keyword">return</span>;</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">第三步：填映像表。</p>
+              <p class="tl">从最低维的顶点开始。</p>
+              <p class="tl">登记每个原始顶点的「替身」（被合并成了哪颗新顶点）。</p>
+              <p class="tl">照例出错就收工。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">用顶点映像先拼一版顶点级结果。</p>
+              <p class="tl">然后逐级向上：边 → 线框 → 面 → 壳 → 体，</p>
+              <p class="tl">每一级都是「填映像 → 拼结果」。</p>
+              <p class="tl">像盖楼：地基打牢才砌上一层。</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: BuildRC Fuse 分支 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">最简单的订单：FUSE 全都要</h2>
+        <p>BuildRC（Build Result Compound）按订单装盘。看 Fuse 分支——配一个「防重名册」保证每块蛋糕只装一次：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// A. Fuse</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myOperation == BOPAlgo_FUSE)</span>
+<span class="code-line">{</span>
+<span class="code-line">  NCollection_Map&lt;TopoDS_Shape, TopTools_ShapeMapHasher&gt; aMFence;</span>
+<span class="code-line">  aType = <span class="code-function">TypeToExplore</span>(myDims[<span class="code-number">0</span>]);</span>
+<span class="code-line">  TopExp_Explorer <span class="code-function">aExp</span>(myShape, aType);</span>
+<span class="code-line">  <span class="code-keyword">for</span> (; aExp.<span class="code-function">More</span>(); aExp.<span class="code-function">Next</span>())</span>
+<span class="code-line">  {</span>
+<span class="code-line">    <span class="code-keyword">const</span> TopoDS_Shape&amp; aS = aExp.<span class="code-function">Current</span>();</span>
+<span class="code-line">    <span class="code-keyword">if</span> (aMFence.<span class="code-function">Add</span>(aS))</span>
+<span class="code-line">    {</span>
+<span class="code-line">      aBB.<span class="code-function">Add</span>(aC, aS);</span>
+<span class="code-line">    }</span>
+<span class="code-line">  }</span>
+<span class="code-line">  myRC = aC;</span>
+<span class="code-line">  <span class="code-keyword">return</span>;</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">A 计划：订单是 FUSE？</p>
+              <p class="tl">进入全都要模式。</p>
+              <p class="tl"></p>
+              <p class="tl">准备一本「防重名册」aMFence（集合，自动去重）。</p>
+              <p class="tl">确定要遍历的零件类型（比如实体）。</p>
+              <p class="tl">派一个探索者走遍 GF 草稿结果。</p>
+              <p class="tl">逐个零件看过去：</p>
+              <p class="tl"></p>
+              <p class="tl">拿到当前零件。</p>
+              <p class="tl">名册里没登记过？（Add 返回 true = 新面孔）</p>
+              <p class="tl"></p>
+              <p class="tl">装进结果盘 aC。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">这盘就是草稿结果 myRC。</p>
+              <p class="tl">FUSE 订单完成，收工。</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6);">Common/Cut 分支则麻烦些：每块零件要先判断 <span class="term" data-definition="IN/OUT/ON：一块零件相对另一组形状的三种状态——在它内部 / 在它外部 / 贴在它边界上。Common 收 IN 的，Cut 收 OUT 的。">IN/OUT/ON</span> 状态再决定去留——「这块在对方肚子里吗？」</p>
+      </section>
+
+      <!-- Screen 5: 群聊 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">剪辑机房的对话</h2>
+        <div class="chat-window" id="chat-module4">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="bop" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">🎞️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">BOP（导演）</span>
+                <p>@DS 把箱子和球的全部切块清单给我</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="ds" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">🗂️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">DS（档案室）</span>
+                <p>送达：箱子独有 ×5 块，球独有 ×3 块，公共 ×1 块</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="bop" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">🎞️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">BOP（导演）</span>
+                <p>订单是 COMMON——只要公共那块</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="bop" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">🎞️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">BOP（导演）</span>
+                <p>分类完毕：IN ✅，其余退回</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="bop" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">🎞️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">BOP（导演）</span>
+                <p>拼装、缝合、登记族谱…成片输出 🎬</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" id="chat-module4-typing" style="display:none">
+            <div class="chat-avatar" id="chat-module4-typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">下一条</button>
+            <button class="btn chat-all-btn">播放全部</button>
+            <button class="btn chat-reset-btn">重播</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！族谱（History）是参数化 CAD 的根基</strong>
+            <p>「登记族谱」= 记录每个原始形状被 <span class="term" data-definition="History 三件套：Modified（被改成了谁）/ Generated（生出了谁，如交线）/ Deleted（消失了）。上层应用靠它在模型改动后重新定位特征。">Modified / Generated / Deleted</span> 的完整记录。正因为有它，你改了草图之后 CAD 还能「重新找到那个孔」。这就是文档说 GF 是 history-based 架构的含义。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 6: Quiz -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">装盘演练</h2>
+        <div class="quiz-container" id="quiz-module4">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="对！切分本身（交点部分）没问题的话，残留多余材料说明某块零件的 IN/OUT 状态判断错了——它本该被判 IN（在工具内部）然后丢弃。"
+               data-explanation-wrong="想想 Cut 的装盘规则：只收 OUT 的零件。多装了一块，说明哪一步把它的「位置身份」搞错了？">
+            <h3 class="quiz-question">Cut 的结果里残留了一小块本该被切掉的材料。最可能哪个环节出错？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>FUSE 和 CUT 的枚举值写反了</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>那块零件的 IN/OUT 状态被分类错了</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>珍珠（Pave）穿太多了</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="正确！切分是最贵的活，GF 干一次就够；四种操作只是过滤规则不同。一套引擎 + 四个过滤器，比四套引擎好维护得多。"
+               data-explanation-wrong="回想蛋糕台：后厨切几次蛋糕？四个盘子的差别在哪个环节产生？">
+            <h3 class="quiz-question">为什么 OCCT 不为 Fuse/Common/Cut 各写一套独立算法？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>共享 GF：昂贵的切分只做一次，四种操作只是不同的挑选过滤器</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>当年人手不够，只好偷懒复用</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>C++ 不支持写四个独立的类</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">再试一次</button>
+        </div>
+
+        <div class="callout callout-info" style="margin-top: var(--space-12);">
+          <div class="callout-icon">🎛️</div>
+          <div class="callout-content">
+            <strong class="callout-title">下一章预告</strong>
+            <p>同样的代码，有人跑出完美结果，有人跑出碎渣——差别往往只是几个开关。最后一章，学会拨布尔运算的「调音台」。</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

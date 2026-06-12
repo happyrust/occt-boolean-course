@@ -1,0 +1,294 @@
+<!-- Module 2: 认识演员表 -->
+<section class="module" id="module-2" style="background: var(--color-bg)">
+  <div class="module-content">
+
+    <header class="module-header animate-in">
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">02</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">认识演员表</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">布尔运算的四个幕后角色</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 开场 + 分层架构图 -->
+      <section class="screen animate-in" style="margin-top: var(--space-10);">
+        <p style="font-size: var(--text-lg);">上一章你看到 Build() 一行返回结果。但有个秘密：<strong>Build 自己什么几何活都不干</strong>。它是个项目经理，把活儿分包给一个「摄制组」。</p>
+        <p>把 OCCT 布尔运算想成电影摄制组——每个部门职责分明：</p>
+        <div class="icon-rows" style="display:flex; flex-direction:column; gap: var(--space-4); margin-top: var(--space-6);">
+          <div class="icon-row" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border-left: 4px solid var(--color-actor-1);">
+            <div class="icon-circle" style="background: var(--color-actor-1); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0;">🎬</div>
+            <div>
+              <strong>制片人 · <code>BRepAlgoAPI</code></strong>
+              <p style="margin:var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">对外签约（接收你的形状和订单），对内调度，最后交付成片。你平时只跟他打交道。</p>
+            </div>
+          </div>
+          <div class="icon-row" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border-left: 4px solid var(--color-actor-2);">
+            <div class="icon-circle" style="background: var(--color-actor-2); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0;">📷</div>
+            <div>
+              <strong>勘景摄影组 · <code>BOPAlgo_PaveFiller</code></strong>
+              <p style="margin:var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">跑遍两个形状的每个角落，找出所有「交叉点」——这是整部片子最贵的环节。</p>
+            </div>
+          </div>
+          <div class="icon-row" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border-left: 4px solid var(--color-actor-3);">
+            <div class="icon-circle" style="background: var(--color-actor-3); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0;">🎞️</div>
+            <div>
+              <strong>导演兼剪辑 · <code>BOPAlgo_BOP</code></strong>
+              <p style="margin:var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">按剧本（FUSE/COMMON/CUT）把切好的素材挑选、拼接成最终成片。</p>
+            </div>
+          </div>
+          <div class="icon-row" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border-left: 4px solid var(--color-actor-4);">
+            <div class="icon-circle" style="background: var(--color-actor-4); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0;">🗂️</div>
+            <div>
+              <strong>场记 + 档案室 · <code>BOPDS_DS</code></strong>
+              <p style="margin:var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">所有镜头、标记、中间结果都记录在册。摄影组写进去，导演读出来——部门间从不直接传东西。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 2: 求交占 70% -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">制片人怎么分活儿</h2>
+        <p>看真实源码（<code style="font-size: var(--text-xs);">BRepAlgoAPI_BooleanOperation.cxx</code>）。注意进度条的数字——它泄露了哪个环节最贵：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// If necessary perform intersection of the argument shapes</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myIsIntersectionNeeded)</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-comment">// Combine Objects and Tools into a single list for intersection</span></span>
+<span class="code-line">  NCollection_List&lt;TopoDS_Shape&gt; aLArgs = myArguments;</span>
+<span class="code-line">  <span class="code-keyword">for</span> (NCollection_List&lt;TopoDS_Shape&gt;::Iterator <span class="code-function">it</span>(myTools); it.<span class="code-function">More</span>(); it.<span class="code-function">Next</span>())</span>
+<span class="code-line">  {</span>
+<span class="code-line">    aLArgs.<span class="code-function">Append</span>(it.<span class="code-function">Value</span>());</span>
+<span class="code-line">  }</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-comment">// Perform intersection</span></span>
+<span class="code-line">  <span class="code-function">IntersectShapes</span>(aLArgs, aPS.<span class="code-function">Next</span>(<span class="code-number">70</span>));</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">如果还没做过求交，就先做。</p>
+              <p class="tl">把 Objects 和 Tools 合并成一张总名单——</p>
+              <p class="tl">求交阶段不分敌我，所有形状一起查。</p>
+              <p class="tl">逐个把 Tools 追加到名单末尾。</p>
+              <p class="tl">名单齐了。</p>
+              <p class="tl">送去求交（内部就是雇佣摄影组 PaveFiller）。</p>
+              <p class="tl">注意那个 70：整个任务 100 分进度，求交独占 70 分——最贵环节实锤。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 3: 挑导演 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">按订单挑导演</h2>
+        <p>求交完成后，制片人根据订单类型挑「导演」：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// Builder Initialization</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (myOperation == BOPAlgo_SECTION)</span>
+<span class="code-line">{</span>
+<span class="code-line">  myBuilder = <span class="code-keyword">new</span> <span class="code-function">BOPAlgo_Section</span>(myAllocator);</span>
+<span class="code-line">  myBuilder-&gt;<span class="code-function">SetArguments</span>(myDSFiller-&gt;<span class="code-function">Arguments</span>());</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-keyword">else</span></span>
+<span class="code-line">{</span>
+<span class="code-line">  myBuilder = <span class="code-keyword">new</span> <span class="code-function">BOPAlgo_BOP</span>(myAllocator);</span>
+<span class="code-line">  myBuilder-&gt;<span class="code-function">SetArguments</span>(myArguments);</span>
+<span class="code-line">  ((BOPAlgo_BOP*)myBuilder)-&gt;<span class="code-function">SetTools</span>(myTools);</span>
+<span class="code-line">  ((BOPAlgo_BOP*)myBuilder)-&gt;<span class="code-function">SetOperation</span>(myOperation);</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">开始请导演。</p>
+              <p class="tl">订单是 SECTION（只要交线）？</p>
+              <p class="tl">请专拍纪录片的 Section 导演。</p>
+              <p class="tl">把素材清单给他。</p>
+              <p class="tl">其他订单（FUSE/COMMON/CUT）——</p>
+              <p class="tl">都请全能导演 BOP。</p>
+              <p class="tl">告诉他谁是 Objects、</p>
+              <p class="tl">谁是 Tools、</p>
+              <p class="tl">这次拍哪种片（操作类型）。</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！分层 + 共享档案室</strong>
+            <p>四个部门从不直接传递数据——一切经过档案室 DS。这种「分层架构 + 共享<span class="term" data-definition="数据结构（Data Structure）：程序里组织和存放数据的方式。这里指 BOPDS_DS——一个专门为布尔运算设计的中央登记册。">数据结构</span>」让任何一层都能单独升级替换。工程师叫它「关注点分离」。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: 群聊动画 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">如果他们有个群聊……</h2>
+        <p>一次 Fuse 运算的完整对话，大概是这样的：</p>
+        <div class="chat-window" id="chat-module2">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="user" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-text-secondary)">👤</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-text-secondary)">用户</span>
+                <p>给这个箱子和球做个 Fuse！</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="api" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">🎬</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">API（制片人）</span>
+                <p>收到。@PaveFiller 先去把所有交点找出来</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="pavefiller" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">📷</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">PaveFiller（摄影组）</span>
+                <p>跑遍了 6 个面和 12 条边，交点、交线全记到 DS 了</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="ds" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">🗂️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">DS（场记）</span>
+                <p>已归档：新顶点 ×8，交线 ×1，切分边 ×24 ✅</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="api" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">🎬</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">API（制片人）</span>
+                <p>@BOP 你来，按 FUSE 剧本剪辑</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="5" data-sender="bop" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">🎞️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">BOP（导演）</span>
+                <p>查 DS 档案…挑出外壳零件…拼接完成 🎬</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="6" data-sender="api" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">🎬</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">API（制片人）</span>
+                <p>用户你好，成片在此 → Shape()</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" id="chat-module2-typing" style="display:none">
+            <div class="chat-avatar" id="chat-module2-typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">下一条</button>
+            <button class="btn chat-all-btn">播放全部</button>
+            <button class="btn chat-reset-btn">重播</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6); font-size: var(--text-sm); color: var(--color-text-secondary);">注意：GF（General Fuse）是基础算法——<span class="term" data-definition="Splitter（拆分器）：用 Tools 把 Objects 切开但不丢弃任何部分。Section：只收集交线。它们和 Fuse/Common/Cut 都构建在同一个 GF 之上。">Splitter、Section</span> 和布尔三件套全是它的「衍生剧」，共用同一个摄影组。</p>
+      </section>
+
+      <!-- Screen 5: Quiz -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">部门定位演练</h2>
+        <div class="quiz-container" id="quiz-module2">
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="对！交线棱边是求交阶段的产物。缺了它，说明摄影组（PaveFiller / 交点部分）没把 Face/Face 交线找出来——先查这里，而不是导演。"
+               data-explanation-wrong="想想分工：交线是「找交点」环节的产物还是「拼装」环节的产物？谁负责找交点？">
+            <h3 class="quiz-question">Fuse 结果缺了一条本该有的交线棱边。先怀疑哪个部门？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>摄影组 PaveFiller（交点部分）</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>导演 BOP（建造部分）</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>制片人 BRepAlgoAPI（API 层）</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="正确！交点部分对所有操作完全一样——差别只在最后怎么挑零件。所以求交一次，四种操作随便换。"
+               data-explanation-wrong="回想章首：四种操作的差别在「装盘」还是在「找交点」？哪一半是公用的？">
+            <h3 class="quiz-question">为什么 Section、Splitter、BOP 能共享同一个 PaveFiller？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>因为它们都是同一个程序员写的</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>因为求交对所有操作都一样，差别只在建造部分</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>为了省内存，被迫共享</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="对！GF（BOPAlgo_Builder）已经把「切分一切」做好了，你只需在它之上写自己的挑选规则——BOP 自己就是这么干的。"
+               data-explanation-wrong="提示：BOP、Section、Splitter 都是站在谁的肩膀上？自己从头写求交可不是好主意。">
+            <h3 class="quiz-question">你想自创一个新布尔类操作（比如只保留外壳）。最聪明的起点是？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>从零写一套求交算法</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>修改 BRepAlgoAPI_Fuse 的源码</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>基于 BOPAlgo_Builder（GF）扩展，复用现成的交点部分</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')">再试一次</button>
+        </div>
+
+        <div class="callout callout-info" style="margin-top: var(--space-12);">
+          <div class="callout-icon">📿</div>
+          <div class="callout-content">
+            <strong class="callout-title">下一章预告</strong>
+            <p>摄影组到底怎么「跑遍现场」？它有一条严格的安检流水线，还有一串漂亮的「珍珠项链」。</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

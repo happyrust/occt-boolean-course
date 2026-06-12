@@ -1,0 +1,364 @@
+<!-- Module 5: 调参与排错 -->
+<section class="module" id="module-5" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+
+    <header class="module-header animate-in">
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">05</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">调参与排错</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">布尔运算的调音台</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 开场 + 推子面板 -->
+      <section class="screen animate-in" style="margin-top: var(--space-10);">
+        <p style="font-size: var(--text-lg);">前四章你看懂了整条流水线。但现实是：两个明明相交的零件，Fuse 出来却是空的；或者一次运算跑 30 秒。先别怀疑人生——大概率只是「推子」没调对。</p>
+        <p>布尔运算像一张录音棚调音台，暴露了这排推子：</p>
+        <div class="pattern-cards" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); margin-top: var(--space-6);">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-1); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🎚️</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">Fuzzy Value</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">容差推子。模型有微小缝隙、差一点点就相交时调大它。默认 1e-7。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-2); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">⚡</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">Run Parallel</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">多核开关。大模型、批量运算时打开。默认关。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-5); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-5); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🛡️</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">Non-Destructive</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">安全模式。保证输入形状不被就地修改（默认会更新容差）。要保留原模型必开。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-4); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🧲</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">Glue</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">贴合模式。确定形状只贴不穿透时开 GlueShift/GlueFull，跳过昂贵求交，提速明显。用错会出错果。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-actor-3); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">📦</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">Use OBB</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;"><span class="term" data-definition="OBB（Oriented Bounding Box，有向包围盒）：贴合形状方向的「快递箱」。两个箱子不相交，里面的东西肯定不相交——快速排除法。">OBB</span> 加速开关。斜放的细长形状多时打开，粗筛更准。</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-text-muted); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm);">
+            <div class="pattern-icon" style="background: var(--color-text-muted); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem;">🩺</div>
+            <h4 class="pattern-title" style="margin: var(--space-3) 0 var(--space-2);">Check Inverted</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">「内外翻转体」体检开关。默认开，确认输入干净可关掉换速度。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 2: 官方用法 code -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">一行一个推子（官方示例）</h2>
+        <p>来自 OCCT 官方文档 <code style="font-size: var(--text-xs);">dox/specification/boolean_operations</code> 的 GF 用法——生产代码可直接照抄这个骨架：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">BOPAlgo_Builder aBuilder;</span>
+<span class="code-line"><span class="code-comment">// Setting arguments</span></span>
+<span class="code-line">NCollection_List&lt;TopoDS_Shape&gt; aLSObjects = …; <span class="code-comment">// Objects</span></span>
+<span class="code-line">aBuilder.<span class="code-function">SetArguments</span>(aLSObjects);</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Set parallel processing mode (default is false)</span></span>
+<span class="code-line"><span class="code-keyword">bool</span> bRunParallel = <span class="code-keyword">true</span>;</span>
+<span class="code-line">aBuilder.<span class="code-function">SetRunParallel</span>(bRunParallel);</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Set Fuzzy value (default is Precision::Confusion())</span></span>
+<span class="code-line"><span class="code-keyword">double</span> aFuzzyValue = <span class="code-number">1.e-5</span>;</span>
+<span class="code-line">aBuilder.<span class="code-function">SetFuzzyValue</span>(aFuzzyValue);</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Set safe processing mode (default is false)</span></span>
+<span class="code-line"><span class="code-keyword">bool</span> bSafeMode = <span class="code-keyword">true</span>;</span>
+<span class="code-line">aBuilder.<span class="code-function">SetNonDestructive</span>(bSafeMode);</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Set Gluing mode for coinciding arguments (default is off)</span></span>
+<span class="code-line">BOPAlgo_GlueEnum aGlue = BOPAlgo_GlueShift;</span>
+<span class="code-line">aBuilder.<span class="code-function">SetGlue</span>(aGlue);</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Perform the operation</span></span>
+<span class="code-line">aBuilder.<span class="code-function">Perform</span>();</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Check for the errors</span></span>
+<span class="code-line"><span class="code-keyword">if</span> (aBuilder.<span class="code-function">HasErrors</span>())</span>
+<span class="code-line">{</span>
+<span class="code-line">  <span class="code-keyword">return</span>;</span>
+<span class="code-line">}</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// result of the operation</span></span>
+<span class="code-line"><span class="code-keyword">const</span> TopoDS_Shape&amp; aResult = aBuilder.<span class="code-function">Shape</span>();</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">请一位 GF 后厨（Builder）。</p>
+              <p class="tl">把要加工的形状列成清单交给他。</p>
+              <p class="tl">（GF 不分 Objects/Tools，全是平等的参与者。）</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">推子 1：打开多核并行。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">推子 2：容差调到 1e-5——比默认宽容 100 倍，吞掉建模小缝隙。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">推子 3：开安全模式，输入形状一根毛都不动。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">推子 4：贴合模式 GlueShift——确定只贴不穿透时的加速器。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">开工！</p>
+              <p class="tl"></p>
+              <p class="tl">铁律：先查错——</p>
+              <p class="tl">有致命错误就别碰结果。</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">体检通过，才取结果。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 3: 参数夹紧 + 调试彩蛋 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">两个值得偷学的源码细节</h2>
+        <p>细节一：Fuzzy 推子有「下限保护」（<code style="font-size: var(--text-xs);">BOPAlgo_Options.cxx</code>）：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">void</span> BOPAlgo_Options::<span class="code-function">SetFuzzyValue</span>(<span class="code-keyword">const</span> <span class="code-keyword">double</span> theFuzz)</span>
+<span class="code-line">{</span>
+<span class="code-line">  myFuzzyValue = std::<span class="code-function">max</span>(theFuzz, Precision::<span class="code-function">Confusion</span>());</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">设置容差推子。</p>
+              <p class="tl"></p>
+              <p class="tl">不管你传多小，最低也按系统精度（1e-7）算。看到 std::max 包住输入——这是「参数夹紧」防御术，值得偷学。</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-8);">细节二：隐藏的调试彩蛋（<code style="font-size: var(--text-xs);">BRepAlgoAPI_BooleanOperation.cxx</code>）。设一个<span class="term" data-definition="环境变量：操作系统层面的全局配置项，程序启动时读取。像贴在门口的便条，所有程序路过都能看一眼。">环境变量</span>就能让 OCCT 自动抓取翻车现场：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">OSD_Environment         <span class="code-function">env</span>(<span class="code-string">"CSF_DEBUG_BOP"</span>);</span>
+<span class="code-line">TCollection_AsciiString pathdump = env.<span class="code-function">Value</span>();</span>
+<span class="code-line">myIsDump                         = (!pathdump.<span class="code-function">IsEmpty</span>());</span>
+<span class="code-line">myPath                           = pathdump.<span class="code-function">ToCString</span>();</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">读环境变量 CSF_DEBUG_BOP。</p>
+              <p class="tl">取出它的值（一个目录路径）。</p>
+              <p class="tl">设置了就打开「行车记录仪」模式。</p>
+              <p class="tl">每当输入或结果体检不合格，自动把两个输入形状 + 复现脚本 dump 到该目录——OCCT 开发者自己就这么抓 bug。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: 症状→药方 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">症状 → 药方速查表</h2>
+        <div class="badge-list" style="display:flex; flex-direction:column; gap: var(--space-3);">
+          <div class="badge-item" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); border:1px solid var(--color-border-light); border-radius: var(--radius-sm); background: var(--color-surface);">
+            <code class="badge-code" style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-error-light); color: var(--color-error); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); white-space:nowrap;">结果为空 / 缺块</code>
+            <span class="badge-desc" style="font-size: var(--text-sm);">先 <code>BRepAlgoAPI_Check</code> 体检两个输入；再把 Fuzzy 调大（如 1e-5）重试——多半是微小缝隙没「碰上」。</span>
+          </div>
+          <div class="badge-item" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); border:1px solid var(--color-border-light); border-radius: var(--radius-sm); background: var(--color-surface);">
+            <code class="badge-code" style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-error-light); color: var(--color-error); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); white-space:nowrap;">跑得太慢</code>
+            <span class="badge-desc" style="font-size: var(--text-sm);">开 <code>SetRunParallel(true)</code>；零件只贴不穿透的场景再加 <code>SetGlue(BOPAlgo_GlueShift)</code>。</span>
+          </div>
+          <div class="badge-item" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); border:1px solid var(--color-border-light); border-radius: var(--radius-sm); background: var(--color-surface);">
+            <code class="badge-code" style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-error-light); color: var(--color-error); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); white-space:nowrap;">原始模型被改了</code>
+            <span class="badge-desc" style="font-size: var(--text-sm);">默认会就地更新输入的容差。开 <code>SetNonDestructive(true)</code> 即可保护原件。</span>
+          </div>
+          <div class="badge-item" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); border:1px solid var(--color-border-light); border-radius: var(--radius-sm); background: var(--color-surface);">
+            <code class="badge-code" style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-error-light); color: var(--color-error); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); white-space:nowrap;">结果怪异 / 自相交</code>
+            <span class="badge-desc" style="font-size: var(--text-sm);">「垃圾进，垃圾出」——输入本身可能自相交。Check 输入 + 读 <code>HasWarnings()</code> 的警告清单。</span>
+          </div>
+          <div class="badge-item" style="display:flex; align-items:center; gap: var(--space-4); padding: var(--space-4); border:1px solid var(--color-border-light); border-radius: var(--radius-sm); background: var(--color-surface);">
+            <code class="badge-code" style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-error-light); color: var(--color-error); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); white-space:nowrap;">偶发崩溃要报 issue</code>
+            <span class="badge-desc" style="font-size: var(--text-sm);">设 <code>CSF_DEBUG_BOP=/某目录</code>，让 OCCT 自动 dump 翻车现场（输入 + 复现脚本）。</span>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！错误 ≠ 警告，双轨报告</strong>
+            <p><code>HasErrors()</code> 是致命伤（无结果可取），<code>HasWarnings()</code> 是亚健康（结果可用但有隐患）。大型几何库普遍采用这种双轨制——忽略警告等于埋雷。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 5: 终章 Quiz -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">终章演练：你来当工程师</h2>
+        <div class="quiz-container" id="quiz-module5">
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="对！面贴面但有肉眼难见的缝隙 = 距离略超容差之和。把 Fuzzy 调大到 1e-5 左右，缝隙就被「吞」掉了。"
+               data-explanation-wrong="复习模块 3 的容差法则：两个东西怎样才算「碰到」？缝隙太小看不见但超过了什么？">
+            <h3 class="quiz-question">两个零件理论上面贴面，Fuse 后却是两个独立体（中间有肉眼难见的缝）。先拨哪个推子？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Fuzzy Value 调大（如 1e-5）</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Run Parallel 打开</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Check Inverted 关掉</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="正确！批量任务首选并行；如果 200 对零件都是「贴而不穿」的装配关系，再加 GlueShift 跳过大量无谓求交。"
+               data-explanation-wrong="200 对独立运算，最大的免费加速来自哪里？多核在等你。">
+            <h3 class="quiz-question">要对 200 对零件批量做 Cut。最先打开什么？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>CSF_DEBUG_BOP</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>SetRunParallel(true)，贴合场景再加 Glue</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>把 Fuzzy 调到最大保平安</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="对！默认模式会就地更新输入形状的容差。SetNonDestructive(true) 保证原件分毫不动——代价是稍慢一点。"
+               data-explanation-wrong="推子面板里有一个专门「保护输入原件」的开关，还记得吗？">
+            <h3 class="quiz-question">运算后用户的原始模型容差被改了，客户投诉。怎么避免？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>每次运算前手动备份所有形状</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>把 Fuzzy 设成 0</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>SetNonDestructive(true)</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="正确！设置 CSF_DEBUG_BOP 指向一个目录，体检不合格时 OCCT 自动 dump 输入形状和 Draw 复现脚本——给官方报 issue 的标准姿势。"
+               data-explanation-wrong="本章那个「行车记录仪」彩蛋还记得吗？它专为抓偶发翻车现场而生。">
+            <h3 class="quiz-question">AI 写的布尔代码偶尔崩溃，你想给 OCCT 官方提 issue。怎么抓现场？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>设环境变量 CSF_DEBUG_BOP，让它自动 dump 输入和复现脚本</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>截一段屏幕录像发过去</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>把整个项目源码打包发过去</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">再试一次</button>
+        </div>
+      </section>
+
+      <!-- Screen 6: 课程收尾 -->
+      <section class="screen animate-in" style="margin-top: var(--space-20); text-align:center;">
+        <span style="font-size: 3rem;">🎓</span>
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 700; margin: var(--space-4) 0;">课程完结，回顾全程</h2>
+        <p style="max-width: 600px; margin: 0 auto;">你已经走完了 OCCT 布尔运算的整条流水线——从一行代码，到看懂内核的每个部门：</p>
+        <div class="step-cards" style="display:flex; flex-direction:column; gap: var(--space-3); max-width: 640px; margin: var(--space-8) auto 0; text-align:left;">
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">1</div>
+            <div class="step-body">
+              <strong>四种操作，一台机器</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">Fuse/Common/Cut/Section 都是 General Fuse 的不同出口</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">2</div>
+            <div class="step-body">
+              <strong>四个角色</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">制片人 API · 摄影组 PaveFiller · 导演 BOP · 档案室 DS</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">3</div>
+            <div class="step-body">
+              <strong>两段流水线</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">交点部分（VV→…→FF 穿珍珠）+ 建造部分（填映像、按订单装盘）</p>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex; align-items:flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);">
+            <div class="step-num" style="width:32px; height:32px; border-radius:50%; background: var(--color-accent); color:white; font-weight:700; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); flex-shrink:0;">4</div>
+            <div class="step-body">
+              <strong>一排推子</strong>
+              <p style="margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm);">Fuzzy / Parallel / Non-Destructive / Glue —— 按「症状→药方」查表调参</p>
+            </div>
+          </div>
+        </div>
+        <h3 style="font-family: var(--font-display); font-size: var(--text-xl); font-weight:600; margin-top: var(--space-12);">下一步去哪儿</h3>
+        <div class="pattern-cards" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); margin-top: var(--space-4); text-align:left;">
+          <div class="pattern-card" style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm); border-top: 3px solid var(--color-actor-2);">
+            <h4 class="pattern-title" style="margin:0 0 var(--space-2);">📖 读原典</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">仓库里的 <code>dox/specification/boolean_operations</code>——本课程的官方蓝本，含全部数学细节。</p>
+          </div>
+          <div class="pattern-card" style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm); border-top: 3px solid var(--color-actor-4);">
+            <h4 class="pattern-title" style="margin:0 0 var(--space-2);">🧪 动手玩</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;">用 <span class="term" data-definition="Draw：OCCT 自带的命令行测试台，可以敲命令直接建模、做布尔、看结果。源码在 src/Draw。">Draw</span> 测试台敲 <code>bfuzzyvalue / bfillds / bbop</code>，亲手复现每一章。</p>
+          </div>
+          <div class="pattern-card" style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm); border-top: 3px solid var(--color-actor-5);">
+            <h4 class="pattern-title" style="margin:0 0 var(--space-2);">🔬 看测试</h4>
+            <p class="pattern-desc" style="color: var(--color-text-secondary); font-size: var(--text-sm); margin:0;"><code>src/ModelingAlgorithms/TKBO/GTests</code> 里的单元测试——每个都是一份可运行的最小示例。</p>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-12); font-size: var(--text-sm); color: var(--color-text-muted);">深入 OCCT 布尔运算 · 完 🎉</p>
+      </section>
+
+    </div>
+  </div>
+</section>

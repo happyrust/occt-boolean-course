@@ -1,0 +1,285 @@
+<!-- Module 3: 交点部分 -->
+<section class="module" id="module-3" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+
+    <header class="module-header animate-in">
+      <span class="module-number" style="font-family: var(--font-display); font-size: var(--text-6xl); font-weight: 800; color: var(--color-accent); opacity: 0.15; display:block; line-height:1;">03</span>
+      <h1 class="module-title" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 700; margin: var(--space-2) 0;">交点部分</h1>
+      <p class="module-subtitle" style="font-size: var(--text-lg); color: var(--color-text-secondary);">PaveFiller 的安检流水线与珍珠项链</p>
+    </header>
+
+    <div class="module-body">
+
+      <!-- Screen 1: 开场 + 珍珠项链图 -->
+      <section class="screen animate-in" style="margin-top: var(--space-10);">
+        <p style="font-size: var(--text-lg);">摄影组（PaveFiller）面对的现场：两个形状加起来十几个面、几十条边、一堆顶点。到底按什么顺序检查「谁碰了谁」？</p>
+        <p>先认识它最重要的发明——<strong>珍珠项链</strong>：</p>
+        <figure style="margin: var(--space-8) 0;">
+          <img src="images/pave-necklace.png" alt="珍珠项链隐喻：珍珠是 Pave，珠间绳段是 Pave Block" style="width:100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); display:block;">
+          <figcaption style="text-align:center; font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-3);">Pave = 珍珠，PaveBlock = 两珠之间的绳段</figcaption>
+        </figure>
+        <p>一条<span class="term" data-definition="边（edge）：形状的「棱」，底下是一条三维曲线。立方体有 12 条边。">边</span>是线绳；求交时发现的交点是穿上去的珍珠（<span class="term" data-definition="Pave：记录「哪个顶点 + 它在曲线上的位置参数 t」的小结构。它把顶点「钉」在边上。">Pave</span>）；相邻两颗珍珠之间的绳段叫 <span class="term" data-definition="Pave Block：一条边被交点切分后的「段」。建造部分拼装结果用的就是这些段，而不是原始整边。">Pave Block</span>。每条有限边天生自带一个 Pave Block——首尾两个端点就是头两颗珍珠。</p>
+      </section>
+
+      <!-- Screen 2: CSS 珍珠项链示意 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">动手摸一摸：一条被切成三段的边</h2>
+        <p>下面是一条边的「项链视图」。鼠标悬停每个绳段试试：</p>
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-md); padding: var(--space-10) var(--space-8); margin: var(--space-6) 0;">
+          <div style="display:flex; align-items:center; width:100%;">
+            <div title="Pave ①（参数 t=0，边的起点）" style="width:22px; height:22px; border-radius:50%; background: radial-gradient(circle at 35% 30%, #ffffff, #d8d3ca); box-shadow: var(--shadow-sm); border:1px solid var(--color-border); flex-shrink:0; z-index:1;"></div>
+            <div title="PaveBlock A" onmouseover="this.style.transform='scaleY(1.8)'; this.style.opacity='1'" onmouseout="this.style.transform='scaleY(1)'; this.style.opacity='0.85'" style="height:8px; flex:1.2; background:#9CC8D9; opacity:0.85; transition: all 150ms; cursor:pointer; border-radius:4px; margin:0 -2px;"></div>
+            <div title="Pave ②（交点，t=0.38）" style="width:22px; height:22px; border-radius:50%; background: radial-gradient(circle at 35% 30%, #ffffff, #d8d3ca); box-shadow: var(--shadow-sm); border:1px solid var(--color-border); flex-shrink:0; z-index:1;"></div>
+            <div title="PaveBlock B" onmouseover="this.style.transform='scaleY(1.8)'; this.style.opacity='1'" onmouseout="this.style.transform='scaleY(1)'; this.style.opacity='0.85'" style="height:8px; flex:0.8; background:#2A7B9B; opacity:0.85; transition: all 150ms; cursor:pointer; border-radius:4px; margin:0 -2px;"></div>
+            <div title="Pave ③（交点，t=0.64）" style="width:22px; height:22px; border-radius:50%; background: radial-gradient(circle at 35% 30%, #ffffff, #d8d3ca); box-shadow: var(--shadow-sm); border:1px solid var(--color-border); flex-shrink:0; z-index:1;"></div>
+            <div title="PaveBlock C" onmouseover="this.style.transform='scaleY(1.8)'; this.style.opacity='1'" onmouseout="this.style.transform='scaleY(1)'; this.style.opacity='0.85'" style="height:8px; flex:1; background:#1F6280; opacity:0.85; transition: all 150ms; cursor:pointer; border-radius:4px; margin:0 -2px;"></div>
+            <div title="Pave ④（参数 t=1，边的终点）" style="width:22px; height:22px; border-radius:50%; background: radial-gradient(circle at 35% 30%, #ffffff, #d8d3ca); box-shadow: var(--shadow-sm); border:1px solid var(--color-border); flex-shrink:0; z-index:1;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top: var(--space-4); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-muted);">
+            <span>t=0 起点</span><span>PaveBlock A</span><span>t=0.38</span><span>B</span><span>t=0.64</span><span>C</span><span>t=1 终点</span>
+          </div>
+        </div>
+        <p>每颗珍珠的位置用<span class="term" data-definition="参数 t：曲线上的「里程数」。t=0 是曲线起点，t=1（或曲线总长）是终点。用一个数就能精确说出「在曲线的哪里」。">参数 t</span> 表示——所以珍珠可以排序、绳段可以精确定义。两条边若整段重合，它们的 Pave Block 还会被绑成一个 <span class="term" data-definition="Common Block（共块）：几何上重合的多个 PaveBlock 被捆在一起，避免同一段空间被算成两份材料。">Common Block</span>。</p>
+      </section>
+
+      <!-- Screen 3: 流水线 code↔English -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">安检流水线：从小到大</h2>
+        <p>真实源码（<code style="font-size: var(--text-xs);">BOPAlgo_PaveFiller.cxx</code> 的 PerformInternal）。注释里的数字是「维度暗号」：0=顶点，1=边，2=面：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// 00</span></span>
+<span class="code-line"><span class="code-function">PerformVV</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_PerformVV)));</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">HasErrors</span>()) { <span class="code-keyword">return</span>; }</span>
+<span class="code-line"><span class="code-comment">// 01</span></span>
+<span class="code-line"><span class="code-function">PerformVE</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_PerformVE)));</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">HasErrors</span>()) { <span class="code-keyword">return</span>; }</span>
+<span class="code-line"><span class="code-function">UpdatePaveBlocksWithSDVertices</span>();</span>
+<span class="code-line"><span class="code-comment">// 11</span></span>
+<span class="code-line"><span class="code-function">PerformEE</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_PerformEE)));</span>
+<span class="code-line"><span class="code-comment">// 02</span></span>
+<span class="code-line"><span class="code-function">PerformVF</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_PerformVF)));</span>
+<span class="code-line"><span class="code-comment">// 12</span></span>
+<span class="code-line"><span class="code-function">PerformEF</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_PerformEF)));</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">00 = 顶点查顶点：有没有两颗顶点撞在一起？</p>
+              <p class="tl">执行，并推进进度条。</p>
+              <p class="tl">出错立刻收工——每一站都这样。</p>
+              <p class="tl">01 = 顶点查边：顶点落在别人的边上了吗？</p>
+              <p class="tl">执行。</p>
+              <p class="tl">照例检查错误。</p>
+              <p class="tl">把「撞在一起的同位顶点」同步进所有珍珠记录（SD = Same Domain，同域）。</p>
+              <p class="tl">11 = 边查边：两条边相交？穿珍珠！</p>
+              <p class="tl">02 = 顶点查面：顶点扎进面里了吗？</p>
+              <p class="tl">12 = 边查面：边穿过面？交点处穿珍珠！</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: var(--space-6);">压轴的是 22（面/面求交，算出<span class="term" data-definition="交线（section curve）：两个面相交形成的三维曲线——比如圆柱穿过平面留下的椭圆。是布尔运算中最贵的计算。">交线</span>），然后一声令下剪断所有边：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">// 22</span></span>
+<span class="code-line"><span class="code-function">PerformFF</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_PerformFF)));</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">HasErrors</span>()) { <span class="code-keyword">return</span>; }</span>
+<span class="code-line"><span class="code-function">UpdateBlocksWithSharedVertices</span>();</span>
+<span class="code-line">myDS-&gt;<span class="code-function">RefineFaceInfoIn</span>();</span>
+<span class="code-line"><span class="code-function">MakeSplitEdges</span>(aPS.<span class="code-function">Next</span>(aSteps.<span class="code-function">GetStep</span>(PIOperation_MakeSplitEdges)));</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">22 = 面查面：计算交线——最贵的一站。</p>
+              <p class="tl">执行。</p>
+              <p class="tl">照例查错。</p>
+              <p class="tl">让交线经过的顶点全网同步。</p>
+              <p class="tl">档案室刷新每个面的「面情报」（FaceInfo）。</p>
+              <p class="tl">MakeSplitEdges：沿所有珍珠，把每条边真正剪成小段。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 4: 流水线动画 -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">流水线全景，点一遍</h2>
+        <p>为什么从小到大？因为低维交点常常「顺便解决」高维相交——两条边的交点，往往正是两个面交线上的点，不用再算一遍。</p>
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"VV 顶点/顶点：距离小于容差之和的顶点合并成一颗新珍珠"},
+          {"highlight":"flow-actor-2","label":"VE 顶点/边：顶点落在边上 —— 给那条边穿珍珠","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-3","label":"EE 边/边：两边相交 —— 双方各穿一颗珍珠；整段重合则绑成 Common Block","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-4","label":"VF/EF 顶点/面、边/面：扎进面或穿过面的统统记录","packet":true,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-5","label":"FF 面/面：计算交线（最贵！），交线上也穿珍珠","packet":true,"from":"actor-4","to":"actor-5"},
+          {"highlight":"flow-actor-6","label":"MakeSplitEdges：沿所有珍珠剪断每条边 —— 零件准备完毕，全部入库 DS","packet":true,"from":"actor-5","to":"actor-6"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1">
+              <div class="flow-actor-icon">·</div>
+              <span>VV</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-2">
+              <div class="flow-actor-icon">⋅—</div>
+              <span>VE</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-3">
+              <div class="flow-actor-icon">✕</div>
+              <span>EE</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-4">
+              <div class="flow-actor-icon">⊿</div>
+              <span>VF/EF</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-5">
+              <div class="flow-actor-icon">◫</div>
+              <span>FF</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-6">
+              <div class="flow-actor-icon">✂️</div>
+              <span>剪边</span>
+            </div>
+          </div>
+          <div class="flow-packet" id="flow-packet"></div>
+          <div class="flow-step-label" id="flow-label">点「下一步」走一遍流水线</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">下一步</button>
+            <button class="btn flow-reset-btn">重来</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+        <div class="callout callout-accent" style="margin-top: var(--space-8);">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Aha！没有「精确相等」，只有「容差内相等」</strong>
+            <p>每个顶点/边/面都带一个<span class="term" data-definition="容差（tolerance）：形状自带的「误差半径」。两个东西的距离小于双方容差之和，就算「碰到了」。浮点数世界没有绝对精确。">容差</span>。两个东西距离 ≤ 容差之和 = 相交。这是几何内核在浮点世界的生存法则——记住它，下下章的 Fuzzy Value 你会秒懂。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 5: Pave 类 + Quiz -->
+      <section class="screen animate-in" style="margin-top: var(--space-16);">
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600;">珍珠本珠：源码只有两件事</h2>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-comment">//! The class BOPDS_Pave is to store</span></span>
+<span class="code-line"><span class="code-comment">//! information about vertex on an edge</span></span>
+<span class="code-line"><span class="code-keyword">class</span> <span class="code-function">BOPDS_Pave</span></span>
+<span class="code-line">{</span>
+<span class="code-line"><span class="code-keyword">public</span>:</span>
+<span class="code-line">  DEFINE_STANDARD_ALLOC</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-comment">//! Empty constructor</span></span>
+<span class="code-line">  <span class="code-function">BOPDS_Pave</span>();</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-comment">//! Constructor with index and parameter</span></span>
+<span class="code-line">  <span class="code-function">BOPDS_Pave</span>(<span class="code-keyword">const</span> <span class="code-keyword">int</span> theIndex, <span class="code-keyword">const</span> <span class="code-keyword">double</span> theParameter);</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">说人话</span>
+            <div class="translation-lines">
+              <p class="tl">官方注释：这个类存「边上的顶点」信息。</p>
+              <p class="tl">就是我们说的珍珠。</p>
+              <p class="tl">类定义开始。</p>
+              <p class="tl">公开接口。</p>
+              <p class="tl">内存分配的标准样板代码（可忽略）。</p>
+              <p class="tl">空构造：先做一颗空白珍珠。</p>
+              <p class="tl">真正有用的构造：传入两个值——</p>
+              <p class="tl">顶点在档案室的编号 + 它在曲线上的里程 t。一颗珍珠就这两样东西。</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading" style="font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; margin-top: var(--space-12);">流水线演练</h2>
+        <div class="quiz-container" id="quiz-module3">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="对！棱对棱相碰是「边/边」干涉，流水线上对应 EE（暗号 11）那一站。"
+               data-explanation-wrong="想想碰在一起的是什么维度的东西：棱是「边」（维度 1），边碰边在哪一站检查？">
+            <h3 class="quiz-question">两个立方体棱对棱搭在一起。这次相碰最先在流水线哪一站被发现？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>VV（顶点/顶点）</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>EE（边/边）</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>FF（面/面）</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="正确！两点没合并 = VV 干涉没触发 = 它们的距离超过了容差之和。调大容差（Fuzzy Value）通常能解决——模块 5 详讲。"
+               data-explanation-wrong="回想 VV 那一站的合并条件：距离 ≤ 容差之和。两点没被合并，说明什么没满足？">
+            <h3 class="quiz-question">结果里两个明明重合的角点变成了两个独立顶点。最该检查什么？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>容差——两点距离可能略超容差之和，VV 合并没触发</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>显卡驱动版本</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>操作类型选错了（应该用 SECTION）</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="对！先小后大，低维结果可以直接复用——边边交点往往就是面面交线上的点，不必重复计算。纯粹是省钱。"
+               data-explanation-wrong="提示：两条边的交点，和两个面的交线，几何上有什么关系？谁能帮谁省工作量？">
+            <h3 class="quiz-question">为什么流水线先做 VV，最后才做 FF，而不是反过来？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>历史习惯，顺序其实无所谓</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>顶点更重要，必须优先处理</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>低维结果可复用：边边交点常常就是面面交线上的点，先算小的避免重复劳动</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">检查答案</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">再试一次</button>
+        </div>
+
+        <div class="callout callout-info" style="margin-top: var(--space-12);">
+          <div class="callout-icon">🍰</div>
+          <div class="callout-content">
+            <strong class="callout-title">下一章预告</strong>
+            <p>现在所有边都被剪成段、所有面都被交线划成片——谁来决定哪些零件进成片？后厨已经把蛋糕切好了，该装盘了。</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
