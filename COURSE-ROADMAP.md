@@ -11,12 +11,12 @@
 | # | 课程 | 覆盖工具包 | 官方蓝本 | 优先级 | 预估规模 |
 |---|---|---|---|---|---|
 | C1 | ✅ **已完成** 形状的解剖学（拓扑与几何数据结构）→ `occt-anatomy-course/` | TKBRep · TKG2d/TKG3d · TKGeomBase | dox/user_guides/modeling_data | ★★★★★ | 6 模块 |
-| C2 | 从零造一个零件（建模工作流） | TKPrim · TKTopAlgo · TKFillet · TKOffset | dox/user_guides/modeling_algos | ★★★★★ | 7 模块 |
-| C3 | 三角化的艺术（网格化） | TKMesh | dox/user_guides/mesh | ★★★★ | 4 模块 |
-| C4 | 形状急诊室（修复与诊断） | TKShHealing | dox/user_guides/shape_healing | ★★★★ | 5 模块 |
-| C5 | 模型的护照（数据交换 STEP/XDE） | TKDESTEP · TKDEIGES · TKXCAF · TKDEGLTF | dox/user_guides/step, xde | ★★★★ | 6 模块 |
-| C6 | 把模型画到屏幕上（可视化） | TKV3d · TKService · TKOpenGl | dox/user_guides/visualization | ★★★ | 6 模块 |
-| C7 | 带 Undo 的文档（OCAF 应用框架） | TKCDF · TKLCAF · TKCAF · TKStd | dox/user_guides/ocaf | ★★ | 5 模块 |
+| C2 | ✅ **已完成** 从零造一个零件（建模工作流）→ `occt-modeling-course/` | TKPrim · TKTopAlgo · TKFillet · TKOffset | dox/user_guides/modeling_algos + dox/tutorial | ★★★★★ | 7 模块 |
+| C3 | ✅ **已完成** 三角化的艺术（网格化）→ `occt-mesh-course/` | TKMesh | dox/user_guides/mesh | ★★★★ | 4 模块 |
+| C4 | ✅ **已完成** 形状急诊室（修复与诊断）→ `occt-healing-course/` | TKShHealing | dox/user_guides/shape_healing | ★★★★ | 5 模块 |
+| C5 | ✅ **已完成** 模型的护照（数据交换 STEP/XDE）→ `occt-de-course/` | TKDESTEP · TKDEIGES · TKXCAF · TKDEGLTF | dox/user_guides/step, xde | ★★★★ | 6 模块 |
+| C6 | ✅ **已完成** 把模型画到屏幕上（可视化）→ `occt-visu-course/` | TKV3d · TKService · TKOpenGl | dox/user_guides/visualization | ★★★ | 6 模块 |
+| C7 | ✅ **已完成** 带 Undo 的文档（OCAF 应用框架）→ `occt-ocaf-course/` | TKCDF · TKLCAF · TKCAF · TKStd | dox/user_guides/ocaf | ★★ | 5 模块 |
 | 番外 | 工程图引擎（HLR）/ Draw 深度玩法 / 内核基石（Handle 与集合） | TKHLR · Draw · TKernel/TKMath | dox/user_guides/draw_test_harness, foundation_classes | ★ | 各 2-3 模块 |
 
 **推荐编写顺序：C1 → C2 → C3 → C4 → C5 → C6 → C7 → 番外**（依赖链与读者学习曲线一致）。
@@ -97,9 +97,11 @@
 
 ## 番外候选（按需）
 
-1. **工程图引擎 HLR**（TKHLR）：3D→2D 投影消隐，2-3 模块
-2. **Draw 深度玩法**：自定义命令、批量回归，2 模块（判例篇已铺垫）
-3. **内核基石**：Handle 引用计数、NCollection 容器、异常体系（TKernel/TKMath），3 模块——适合想读源码的进阶读者
+1. ✅ **已完成** 工程图引擎 HLR（TKHLR）→ `occt-hlr-course/`：3D→2D 投影消隐，3 模块
+2. ✅ **已完成** Draw 深度玩法 → `occt-draw-course/`：自定义命令、批量回归，2 模块（判例篇已铺垫）
+3. ✅ **已完成** 内核基石 → `occt-kernel-course/`：Handle 引用计数、NCollection 容器、异常体系（TKernel/TKMath），3 模块——适合想读源码的进阶读者
+
+> 🏁 **全系列收官（2026-06-12）**：七门正课 + 布尔课 + 三个番外共 **11 门课、48 个模块**全部完成，门户页 `occt-courses-portal/` 一页索引。本 roadmap 使命达成，归档留念。
 
 ---
 
@@ -112,4 +114,6 @@
 
 ## 建议的下一步
 
-按优先级，**先开 C1《形状的解剖学》**：它是其余六门课的依赖，且与已完成的布尔课衔接最自然（布尔课读者的第一个疑问就是「Face/Edge 到底是什么」）。确认后我直接按既定流程开工：盘点 → briefs → 模块。
+🎓 **C1–C7 七门正课全部完课**（2026-06-12），**番外 I（HLR）亦完课**，并新增统一门户页 `occt-courses-portal/index.html`（与各课程目录同级部署即可，相对链接串联九门课）。剩余可选加餐：番外 II《Draw 深度玩法》（蓝本 dox/user_guides/draw_test_harness，2 模块）与番外 III《内核基石》（Handle/NCollection/异常，蓝本 dox/user_guides/foundation_classes，3 模块）。
+
+> C2 实施备注：贯穿零件按官方瓶子教程执行（dox/tutorial 原码直引），模块顺序对齐瓶子真实工序（草图→长料→圆角→焊颈→抽壳→螺纹→检验），未采用 roadmap 草案中的法兰/支架例（理由：官方代码权威、七道工序天然覆盖全部目标 API）。

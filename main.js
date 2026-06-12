@@ -182,7 +182,7 @@
       const wrongExp  = q.dataset.explanationWrong  || '';
 
       if (!selected) {
-        feedback.textContent = 'Pick an answer first!';
+        feedback.textContent = '先选一个答案！';
         feedback.className = 'quiz-feedback show warning';
         return;
       }
@@ -190,13 +190,13 @@
 
       if (selected.dataset.value === correct) {
         selected.classList.add('correct');
-        feedback.innerHTML = '<strong>Exactly!</strong> ' + rightExp;
+        feedback.innerHTML = '<strong>答对了！</strong>' + rightExp;
         feedback.className = 'quiz-feedback show success';
       } else {
         selected.classList.add('incorrect');
         const correctBtn = $(`.quiz-option[data-value="${correct}"]`, q);
         if (correctBtn) correctBtn.classList.add('correct');
-        feedback.innerHTML = '<strong>Not quite.</strong> ' + wrongExp;
+        feedback.innerHTML = '<strong>还差一点。</strong>' + wrongExp;
         feedback.className = 'quiz-feedback show error';
       }
     });
@@ -303,7 +303,7 @@
     const container = $('#' + containerId);
     if (!container) return;
     $$('.dnd-zone-target', container).forEach(t => {
-      t.textContent = 'Drop here';
+      t.textContent = '拖到这里';
       delete t.dataset.placed;
       t.classList.remove('correct-placed', 'incorrect-placed');
     });
@@ -333,7 +333,7 @@
     });
 
     function updateProgress() {
-      if (progressEl) progressEl.textContent = index + ' / ' + messages.length + ' messages';
+      if (progressEl) progressEl.textContent = index + ' / ' + messages.length + ' 条';
     }
 
     function showNext() {
@@ -395,7 +395,7 @@
     let step = 0;
 
     function updateProgress() {
-      if (progressEl) progressEl.textContent = 'Step ' + step + ' / ' + stepsData.length;
+      if (progressEl) progressEl.textContent = '第 ' + step + ' / ' + stepsData.length + ' 步';
     }
 
     function animatePacket(fromId, toId) {
@@ -438,7 +438,7 @@
     function reset() {
       step = 0;
       $$('.flow-actor', containerEl).forEach(a => a.classList.remove('active'));
-      if (labelEl) labelEl.textContent = 'Click "Next Step" to begin';
+      if (labelEl) labelEl.textContent = '点「下一步」开始';
       if (packet)  packet.style.display = 'none';
       updateProgress();
     }
@@ -470,12 +470,12 @@
     const feedback  = $('.bug-feedback', challenge);
     if (isCorrect) {
       el.classList.add('correct');
-      feedback.innerHTML  = '<strong>Found it!</strong> ' + (el.dataset.explanation || '');
+      feedback.innerHTML  = '<strong>抓到了！</strong>' + (el.dataset.explanation || '');
       feedback.className  = 'bug-feedback show success';
       $$('.bug-line', challenge).forEach(l => l.style.pointerEvents = 'none');
     } else {
       el.classList.add('incorrect');
-      feedback.innerHTML  = (el.dataset.hint || 'Not this line — keep looking...');
+      feedback.innerHTML  = (el.dataset.hint || '不是这一行——再找找…');
       feedback.className  = 'bug-feedback show error';
       setTimeout(() => {
         el.classList.remove('incorrect');
